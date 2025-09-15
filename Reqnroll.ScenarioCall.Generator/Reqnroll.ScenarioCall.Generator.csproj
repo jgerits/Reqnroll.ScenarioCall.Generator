@@ -10,7 +10,7 @@
         <FileVersion>3.0.2</FileVersion>
         
         <!-- Package Metadata -->
-        <PackageId>Reqnroll.ScenarioCall.Generator</PackageId>
+        <PackageId>JGerits.Reqnroll.ScenarioCall.Generator</PackageId>
         <Title>Reqnroll Scenario Call Generator</Title>
         <Description>A Reqnroll generator plugin that enables calling and embedding scenarios from other feature files directly within test scenarios. Promotes test reusability, modularity, and better organization of Gherkin specifications.</Description>
         <Authors>Joey Gerits</Authors>

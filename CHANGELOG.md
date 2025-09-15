@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Fixed typo in original README ("Scenerio's" → "Scenarios")
 - Updated CI/CD pipeline to support automatic releases on main branch commits
+- **BREAKING**: Changed package ID from `Reqnroll.ScenarioCall.Generator` to `JGerits.Reqnroll.ScenarioCall.Generator` to avoid conflicts with reserved "reqnroll" prefix on nuget.org
 
 ## [3.0.0] - 2025-01-XX
 

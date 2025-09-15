@@ -1,7 +1,7 @@
 # Reqnroll.ScenarioCall.Generator
 
 [![Build Status](https://github.com/zelda1link3/Reqnroll.ScenarioCall.Generator/actions/workflows/ci-cd.yml/badge.svg)](https://github.com/zelda1link3/Reqnroll.ScenarioCall.Generator/actions/workflows/ci-cd.yml)
-[![NuGet](https://img.shields.io/nuget/v/Reqnroll.ScenarioCall.Generator.svg)](https://www.nuget.org/packages/Reqnroll.ScenarioCall.Generator/)
+[![NuGet](https://img.shields.io/nuget/v/JGerits.Reqnroll.ScenarioCall.Generator.svg)](https://www.nuget.org/packages/JGerits.Reqnroll.ScenarioCall.Generator/)
 [![License](https://img.shields.io/badge/license-BSD%203--Clause-blue.svg)](LICENSE)
 [![.NET](https://img.shields.io/badge/.NET-Standard%202.0-purple)](https://dotnet.microsoft.com/download/dotnet-standard)
 
@@ -90,12 +90,12 @@ Scenario: Create New User Account
 Install the plugin via NuGet Package Manager:
 
 ```bash
-dotnet add package Reqnroll.ScenarioCall.Generator
+dotnet add package JGerits.Reqnroll.ScenarioCall.Generator
 ```
 
 Or via Package Manager Console in Visual Studio:
 ```powershell
-Install-Package Reqnroll.ScenarioCall.Generator
+Install-Package JGerits.Reqnroll.ScenarioCall.Generator
 ```
 
 ### Manual Installation
