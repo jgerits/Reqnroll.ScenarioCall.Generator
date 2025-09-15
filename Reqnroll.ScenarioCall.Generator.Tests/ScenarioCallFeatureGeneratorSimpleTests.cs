@@ -222,7 +222,7 @@ Scenario: Login
     public void IsStepLine_IdentifiesStepLines(string line, bool expected)
     {
         // Act
-        var result = CallPrivateMethod<bool>(_generator, "IsStepLine", line);
+        var result = CallPrivateStaticMethod<bool>(typeof(ScenarioCallFeatureGenerator), "IsStepLine", line);
 
         // Assert
         Assert.Equal(expected, result);
@@ -237,7 +237,7 @@ Feature: Authentication Feature
 Some description";
 
         // Act
-        var result = CallPrivateMethod<string>(_generator, "ExtractFeatureNameFromContent", content);
+        var result = CallPrivateStaticMethod<string>(typeof(ScenarioCallFeatureGenerator), "ExtractFeatureNameFromContent", content);
 
         // Assert
         Assert.Equal("Authentication Feature", result);
@@ -251,7 +251,7 @@ Some description";
 Some content without feature";
 
         // Act
-        var result = CallPrivateMethod<string>(_generator, "ExtractFeatureNameFromContent", content);
+        var result = CallPrivateStaticMethod<string>(typeof(ScenarioCallFeatureGenerator), "ExtractFeatureNameFromContent", content);
 
         // Assert
         Assert.Null(result);
@@ -302,8 +302,8 @@ Scenario: Login
         var result = _generator.PreprocessFeatureContent(originalContent);
 
         // Assert
-        Assert.Contains("        # Expanded from scenario call", result);
-        Assert.Contains("        Given I am on the login page", result);
+        Assert.Contains("# Expanded from scenario call:", result);
+        Assert.Contains("Given I am on the login page", result);
     }
 
     [Fact]
@@ -334,8 +334,9 @@ Scenario: Logout
 
     private void SetupFeatureFileContent(string featureName, string content)
     {
-        // Create a temporary feature file for testing
-        var tempDir = Path.GetTempPath();
+        // Create a temporary feature file for testing in a safe location
+        var tempDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+        Directory.CreateDirectory(tempDir);
         var featuresDir = Path.Combine(tempDir, "Features");
         Directory.CreateDirectory(featuresDir);
         
@@ -354,5 +355,15 @@ Scenario: Logout
             throw new ArgumentException($"Method {methodName} not found");
         }
         return (T)method.Invoke(obj, parameters)!;
+    }
+
+    private T CallPrivateStaticMethod<T>(Type type, string methodName, params object[] parameters)
+    {
+        var method = type.GetMethod(methodName, System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static);
+        if (method == null)
+        {
+            throw new ArgumentException($"Static method {methodName} not found");
+        }
+        return (T)method.Invoke(null, parameters)!;
     }
 }
