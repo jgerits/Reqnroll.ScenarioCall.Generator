@@ -16,7 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Fixed typo in original README ("Scenerio's" → "Scenarios")
 
-## [1.0.0] - 2025-01-XX
+## [3.0.0] - 2025-01-XX
 
 ### Added
 - Initial release of Reqnroll.ScenarioCall.Generator
@@ -43,6 +43,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Dependencies
 - Reqnroll.CustomPlugin 3.0.1
+
+---
+
+## Version Numbering Strategy
+
+This project follows a modified semantic versioning approach aligned with Reqnroll:
+
+- **MAJOR.MINOR**: Matches the Reqnroll version (e.g., 3.0 for Reqnroll 3.0.x)
+- **PATCH**: Independently managed for plugin-specific updates and fixes
+
+This ensures compatibility with the corresponding Reqnroll version while allowing independent plugin updates.
 
 ---
 
@@ -73,13 +84,14 @@ For each release, we document:
 
 ## Version Numbering
 
-This project follows [Semantic Versioning](https://semver.org/):
+This project follows a modified semantic versioning approach aligned with Reqnroll:
 
-- **MAJOR**: Incompatible API changes
-- **MINOR**: New functionality in a backwards compatible manner
-- **PATCH**: Backwards compatible bug fixes
+- **MAJOR.MINOR**: Matches the Reqnroll version (e.g., 3.0 for Reqnroll 3.0.x)  
+- **PATCH**: Independently managed for plugin-specific updates and fixes
+
+This ensures compatibility with the corresponding Reqnroll version while allowing independent plugin updates.
 
 ## Links
 
-- [Unreleased]: https://github.com/zelda1link3/Reqnroll.ScenarioCall.Generator/compare/v1.0.0...HEAD
-- [1.0.0]: https://github.com/zelda1link3/Reqnroll.ScenarioCall.Generator/releases/tag/v1.0.0
+- [Unreleased]: https://github.com/zelda1link3/Reqnroll.ScenarioCall.Generator/compare/v3.0.0...HEAD
+- [3.0.0]: https://github.com/zelda1link3/Reqnroll.ScenarioCall.Generator/releases/tag/v3.0.0
