@@ -1,6 +1,7 @@
 # Reqnroll.ScenarioCall.Generator
 
-[![Build Status](https://img.shields.io/badge/build-passing-brightgreen)](https://github.com/zelda1link3/Reqnroll.ScenarioCall.Generator)
+[![Build Status](https://github.com/zelda1link3/Reqnroll.ScenarioCall.Generator/actions/workflows/ci-cd.yml/badge.svg)](https://github.com/zelda1link3/Reqnroll.ScenarioCall.Generator/actions/workflows/ci-cd.yml)
+[![NuGet](https://img.shields.io/nuget/v/Reqnroll.ScenarioCall.Generator.svg)](https://www.nuget.org/packages/Reqnroll.ScenarioCall.Generator/)
 [![License](https://img.shields.io/badge/license-BSD%203--Clause-blue.svg)](LICENSE)
 [![.NET](https://img.shields.io/badge/.NET-Standard%202.0-purple)](https://dotnet.microsoft.com/download/dotnet-standard)
 
@@ -237,6 +238,47 @@ dotnet test --filter "TestMethodName"
 - Automatic feature file discovery
 - Error handling for missing scenarios
 - Support for all Gherkin step keywords
+
+## CI/CD Pipeline
+
+This project uses GitHub Actions for automated building, testing, and publishing to NuGet.org.
+
+### Automated Workflows
+
+#### CI/CD Pipeline (`.github/workflows/ci-cd.yml`)
+
+The pipeline automatically:
+
+1. **On every push to main/master and pull requests**:
+   - Sets up .NET 8.0 environment
+   - Restores NuGet dependencies
+   - Builds the solution in Release configuration
+   - Runs all tests
+   - Creates NuGet packages
+   - Uploads packages as build artifacts
+
+2. **On GitHub releases**:
+   - Downloads the build artifacts
+   - Publishes the NuGet package to nuget.org
+
+### Publishing Releases
+
+To publish a new version to NuGet.org:
+
+1. Update the version in `Reqnroll.ScenarioCall.Generator.csproj`:
+   ```xml
+   <Version>3.0.1</Version>
+   <AssemblyVersion>3.0.1</AssemblyVersion>
+   <FileVersion>3.0.1</FileVersion>
+   ```
+
+2. Create a new GitHub release with a tag (e.g., `v3.0.1`)
+
+3. The pipeline will automatically build and publish to NuGet.org
+
+### Setup Requirements
+
+To enable automatic publishing, the repository requires a `NUGET_API_KEY` secret containing a valid NuGet.org API key with push permissions.
 
 ## License
 
