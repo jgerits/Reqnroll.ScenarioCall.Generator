@@ -50,31 +50,6 @@ jobs:
           path: ./artifacts/*.nupkg
           retention-days: 30
 
-  publish:
-    runs-on: ubuntu-latest
-    name: Publish to NuGet
-    needs: build-and-test
-    if: github.event_name == 'release' && github.event.action == 'published'
-
-    steps:
-      - name: Download package artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: nuget-packages
-          path: ./artifacts
-
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: '8.0.x'
-
-      - name: Publish to NuGet
-        run: |
-          dotnet nuget push ./artifacts/*.nupkg \
-            --api-key ${{ secrets.NUGET_API_KEY }} \
-            --source https://api.nuget.org/v3/index.json \
-            --skip-duplicate
-
   auto-release:
     runs-on: ubuntu-latest
     name: Auto Release
@@ -152,3 +127,10 @@ jobs:
             ./artifacts/*.nupkg
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Publish to NuGet
+        run: |
+          dotnet nuget push ./artifacts/*.nupkg \
+            --api-key ${{ secrets.NUGET_API_KEY }} \
+            --source https://api.nuget.org/v3/index.json \
+            --skip-duplicate
