@@ -99,5 +99,5 @@ This ensures compatibility with the corresponding Reqnroll version while allowin
 
 ## Links
 
-- [Unreleased]: https://github.com/zelda1link3/Reqnroll.ScenarioCall.Generator/compare/v3.0.0...HEAD
-- [3.0.0]: https://github.com/zelda1link3/Reqnroll.ScenarioCall.Generator/releases/tag/v3.0.0
+- [Unreleased]: https://github.com/jgerits/Reqnroll.ScenarioCall.Generator/compare/v3.0.0...HEAD
+- [3.0.0]: https://github.com/jgerits/Reqnroll.ScenarioCall.Generator/releases/tag/v3.0.0

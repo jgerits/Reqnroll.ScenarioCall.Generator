@@ -16,8 +16,8 @@
         <Authors>Joey Gerits</Authors>
         <Copyright>Copyright (c) 2025 Joey Gerits</Copyright>
         <PackageLicenseExpression>BSD-3-Clause</PackageLicenseExpression>
-        <PackageProjectUrl>https://github.com/zelda1link3/Reqnroll.ScenarioCall.Generator</PackageProjectUrl>
-        <RepositoryUrl>https://github.com/zelda1link3/Reqnroll.ScenarioCall.Generator</RepositoryUrl>
+        <PackageProjectUrl>https://github.com/jgerits/Reqnroll.ScenarioCall.Generator</PackageProjectUrl>
+        <RepositoryUrl>https://github.com/jgerits/Reqnroll.ScenarioCall.Generator</RepositoryUrl>
         <RepositoryType>git</RepositoryType>
         <PackageReadmeFile>README.md</PackageReadmeFile>
         <PackageTags>reqnroll;specflow;bdd;gherkin;testing;scenario;generator;plugin</PackageTags>

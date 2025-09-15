@@ -1,6 +1,6 @@
 # Reqnroll.ScenarioCall.Generator
 
-[![Build Status](https://github.com/zelda1link3/Reqnroll.ScenarioCall.Generator/actions/workflows/ci-cd.yml/badge.svg)](https://github.com/zelda1link3/Reqnroll.ScenarioCall.Generator/actions/workflows/ci-cd.yml)
+[![Build Status](https://github.com/jgerits/Reqnroll.ScenarioCall.Generator/actions/workflows/ci-cd.yml/badge.svg)](https://github.com/jgerits/Reqnroll.ScenarioCall.Generator/actions/workflows/ci-cd.yml)
 [![NuGet](https://img.shields.io/nuget/v/JGerits.Reqnroll.ScenarioCall.Generator.svg)](https://www.nuget.org/packages/JGerits.Reqnroll.ScenarioCall.Generator/)
 [![License](https://img.shields.io/badge/license-BSD%203--Clause-blue.svg)](LICENSE)
 [![.NET](https://img.shields.io/badge/.NET-Standard%202.0-purple)](https://dotnet.microsoft.com/download/dotnet-standard)
@@ -99,7 +99,7 @@ Install-Package JGerits.Reqnroll.ScenarioCall.Generator
 ```
 
 ### Manual Installation
-1. Download the latest release from the [releases page](https://github.com/zelda1link3/Reqnroll.ScenarioCall.Generator/releases)
+1. Download the latest release from the [releases page](https://github.com/jgerits/Reqnroll.ScenarioCall.Generator/releases)
 2. Add the assembly reference to your test project
 3. Ensure the plugin is registered (see Configuration section)
 
@@ -305,8 +305,8 @@ This project is licensed under the BSD 3-Clause License - see the [LICENSE](LICE
 
 ## Support
 
-- 📫 **Issues**: [GitHub Issues](https://github.com/zelda1link3/Reqnroll.ScenarioCall.Generator/issues)
-- 💬 **Discussions**: [GitHub Discussions](https://github.com/zelda1link3/Reqnroll.ScenarioCall.Generator/discussions)
+- 📫 **Issues**: [GitHub Issues](https://github.com/jgerits/Reqnroll.ScenarioCall.Generator/issues)
+- 💬 **Discussions**: [GitHub Discussions](https://github.com/jgerits/Reqnroll.ScenarioCall.Generator/discussions)
 - 📚 **Documentation**: This README and inline code documentation
 
 ## Related Projects
