@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Automatic Release System**: Every commit to main now automatically creates a new release
+  - Patch version is automatically incremented (e.g., 3.0.0 → 3.0.1)
+  - GitHub releases are created automatically with NuGet packages attached
+  - Maintains the same MAJOR.MINOR versioning strategy aligned with Reqnroll
 - Comprehensive documentation improvements
 - Contributing guidelines
 - Enhanced project metadata for NuGet package
@@ -15,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - Fixed typo in original README ("Scenerio's" → "Scenarios")
+- Updated CI/CD pipeline to support automatic releases on main branch commits
 
 ## [3.0.0] - 2025-01-XX
 
