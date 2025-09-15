@@ -71,3 +71,81 @@ jobs:
             --api-key ${{ secrets.NUGET_API_KEY }} \
             --source https://api.nuget.org/v3/index.json \
             --skip-duplicate
+
+  auto-release:
+    runs-on: ubuntu-latest
+    name: Auto Release
+    needs: build-and-test
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Get current version
+        id: current_version
+        run: |
+          CURRENT_VERSION=$(grep -o '<Version>[^<]*</Version>' Reqnroll.ScenarioCall.Generator/Reqnroll.ScenarioCall.Generator.csproj | sed 's/<Version>\(.*\)<\/Version>/\1/')
+          echo "Current version: $CURRENT_VERSION"
+          echo "version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
+
+      - name: Increment patch version
+        id: new_version
+        run: |
+          CURRENT_VERSION="${{ steps.current_version.outputs.version }}"
+          MAJOR=$(echo $CURRENT_VERSION | cut -d. -f1)
+          MINOR=$(echo $CURRENT_VERSION | cut -d. -f2)
+          PATCH=$(echo $CURRENT_VERSION | cut -d. -f3)
+          NEW_PATCH=$((PATCH + 1))
+          NEW_VERSION="$MAJOR.$MINOR.$NEW_PATCH"
+          echo "New version: $NEW_VERSION"
+          echo "version=$NEW_VERSION" >> $GITHUB_OUTPUT
+
+      - name: Update version in project file
+        run: |
+          NEW_VERSION="${{ steps.new_version.outputs.version }}"
+          sed -i "s|<Version>[^<]*</Version>|<Version>$NEW_VERSION</Version>|g" Reqnroll.ScenarioCall.Generator/Reqnroll.ScenarioCall.Generator.csproj
+          sed -i "s|<AssemblyVersion>[^<]*</AssemblyVersion>|<AssemblyVersion>$NEW_VERSION</AssemblyVersion>|g" Reqnroll.ScenarioCall.Generator/Reqnroll.ScenarioCall.Generator.csproj
+          sed -i "s|<FileVersion>[^<]*</FileVersion>|<FileVersion>$NEW_VERSION</FileVersion>|g" Reqnroll.ScenarioCall.Generator/Reqnroll.ScenarioCall.Generator.csproj
+
+      - name: Restore dependencies
+        run: dotnet restore
+
+      - name: Build solution
+        run: dotnet build --configuration Release --no-restore
+
+      - name: Run tests
+        run: dotnet test --configuration Release --no-build --verbosity normal
+
+      - name: Create NuGet package
+        run: dotnet pack --configuration Release --no-build --output ./artifacts
+
+      - name: Commit version bump
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add Reqnroll.ScenarioCall.Generator/Reqnroll.ScenarioCall.Generator.csproj
+          git commit -m "Bump version to ${{ steps.new_version.outputs.version }}" || exit 0
+          git push
+
+      - name: Create Release
+        run: |
+          NEW_VERSION="${{ steps.new_version.outputs.version }}"
+          gh release create "v$NEW_VERSION" \
+            --title "Release v$NEW_VERSION" \
+            --notes "Auto-generated release for version $NEW_VERSION
+
+          This release was automatically created from the latest commit to the main branch.
+          
+          Changes in this release will be documented in the [CHANGELOG.md](https://github.com/zelda1link3/Reqnroll.ScenarioCall.Generator/blob/main/CHANGELOG.md)." \
+            ./artifacts/*.nupkg
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

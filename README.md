@@ -257,24 +257,43 @@ The pipeline automatically:
    - Creates NuGet packages
    - Uploads packages as build artifacts
 
-2. **On GitHub releases**:
+2. **On every push to main/master (automatic releases)**:
+   - Automatically increments the patch version (e.g., 3.0.0 → 3.0.1)
+   - Updates version numbers in the project file
+   - Builds and tests with the new version
+   - Creates a GitHub release with the new tag
+   - Attaches the NuGet package to the release
+
+3. **On GitHub releases**:
    - Downloads the build artifacts
    - Publishes the NuGet package to nuget.org
 
+### Automatic Versioning
+
+**New in this version**: Every commit to the main branch now automatically creates a new release!
+
+The versioning follows the pattern described in the [CHANGELOG.md](CHANGELOG.md):
+- **MAJOR.MINOR**: Matches the Reqnroll version (e.g., 3.0 for Reqnroll 3.0.x)
+- **PATCH**: Automatically incremented on each commit to main (3.0.0 → 3.0.1 → 3.0.2, etc.)
+
 ### Publishing Releases
 
-To publish a new version to NuGet.org:
+**Automatic Process** (recommended):
+1. Simply push changes to the main branch
+2. The CI/CD pipeline will automatically:
+   - Increment the patch version
+   - Create a GitHub release
+   - Publish to NuGet.org
 
+**Manual Process** (for major/minor version changes):
 1. Update the version in `Reqnroll.ScenarioCall.Generator.csproj`:
    ```xml
-   <Version>3.0.1</Version>
-   <AssemblyVersion>3.0.1</AssemblyVersion>
-   <FileVersion>3.0.1</FileVersion>
+   <Version>4.0.0</Version>
+   <AssemblyVersion>4.0.0</AssemblyVersion>
+   <FileVersion>4.0.0</FileVersion>
    ```
-
-2. Create a new GitHub release with a tag (e.g., `v3.0.1`)
-
-3. The pipeline will automatically build and publish to NuGet.org
+2. Commit and push to main
+3. The pipeline will use your specified version instead of auto-incrementing
 
 ### Setup Requirements
 
