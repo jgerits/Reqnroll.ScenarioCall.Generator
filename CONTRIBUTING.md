@@ -78,7 +78,7 @@ We welcome various types of contributions:
 
 ### Finding Work
 
-- Check the [Issues](https://github.com/zelda1link3/Reqnroll.ScenarioCall.Generator/issues) page for open bugs and feature requests
+- Check the [Issues](https://github.com/jgerits/Reqnroll.ScenarioCall.Generator/issues) page for open bugs and feature requests
 - Look for issues labeled `good first issue` for beginner-friendly tasks
 - Issues labeled `help wanted` are specifically looking for community contributions
 - Feel free to propose new features by opening an issue first
@@ -287,7 +287,7 @@ For feature requests, include:
 
 If you need help with contributing:
 
-- Open a [Discussion](https://github.com/zelda1link3/Reqnroll.ScenarioCall.Generator/discussions)
+- Open a [Discussion](https://github.com/jgerits/Reqnroll.ScenarioCall.Generator/discussions)
 - Comment on relevant issues
 - Reach out to maintainers
 

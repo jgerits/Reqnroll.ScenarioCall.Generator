@@ -123,7 +123,7 @@ jobs:
 
           This release was automatically created from the latest commit to the main branch.
           
-          Changes in this release will be documented in the [CHANGELOG.md](https://github.com/zelda1link3/Reqnroll.ScenarioCall.Generator/blob/main/CHANGELOG.md)." \
+          Changes in this release will be documented in the [CHANGELOG.md](https://github.com/jgerits/Reqnroll.ScenarioCall.Generator/blob/main/CHANGELOG.md)." \
             ./artifacts/*.nupkg
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
