@@ -21,11 +21,11 @@ public class LanguageIntegrationTests
     [Fact]
     public void PreprocessFeatureContent_WithGermanLanguage_ExpandsScenarioCall()
     {
-        // Arrange - German keywords but English scenario call phrase
+        // Arrange - German keywords and localized scenario call phrase
         var originalContent = @"#language: de-DE
 Feature: Test Feature
 Scenario: Test Scenario
-    Angenommen I call scenario ""Anmeldung"" from feature ""Authentifizierung""";
+    Angenommen ich rufe Szenario ""Anmeldung"" aus Feature ""Authentifizierung""";
 
         SetupFeatureFileContent("Authentifizierung", @"#language: de-DE
 Feature: Authentifizierung
@@ -47,11 +47,11 @@ Scenario: Anmeldung
     [Fact]
     public void PreprocessFeatureContent_WithFrenchLanguage_ExpandsScenarioCall()
     {
-        // Arrange
+        // Arrange - French keywords and localized scenario call phrase
         var originalContent = @"#language: fr-FR
 Feature: Fonctionnalité de test
 Scenario: Scénario de test
-    Soit I call scenario ""Connexion"" from feature ""Authentification""";
+    Soit j'appelle le scénario ""Connexion"" de la fonctionnalité ""Authentification""";
 
         SetupFeatureFileContent("Authentification", @"#language: fr-FR
 Feature: Authentification
@@ -225,6 +225,27 @@ Scenario: Test Scenario
 #language: de-DE
 Scenario: Test Scenario
     Given I call scenario ""Login"" from feature ""Auth""";
+
+        SetupFeatureFileContent("Auth", @"Feature: Auth
+Scenario: Login
+    Given I am on the login page");
+
+        // Act
+        var result = _generator.PreprocessFeatureContent(originalContent);
+
+        // Assert
+        Assert.Contains("# Expanded from scenario call", result);
+        Assert.Contains("Given I am on the login page", result);
+    }
+
+    [Fact]
+    public void PreprocessFeatureContent_WithBackwardCompatibility_ExpandsEnglishPhrases()
+    {
+        // Arrange - Using English phrases with German keywords for backward compatibility
+        var originalContent = @"#language: de-DE
+Feature: Test Feature
+Scenario: Test Scenario
+    Angenommen I call scenario ""Login"" from feature ""Auth""";
 
         SetupFeatureFileContent("Auth", @"Feature: Auth
 Scenario: Login

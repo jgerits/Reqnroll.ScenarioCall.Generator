@@ -79,15 +79,24 @@ Scenario: Test Scenario";
     [InlineData(@"Then I call scenario ""Setup"" from feature ""Test""", "en", true)]
     [InlineData(@"And I call scenario ""Cleanup"" from feature ""Test""", "en", true)]
     [InlineData(@"But I call scenario ""Reset"" from feature ""Test""", "en", true)]
+    // New localized scenario call phrases
+    [InlineData(@"Angenommen ich rufe Szenario ""Login"" aus Feature ""Auth""", "de", true)]
+    [InlineData(@"Wenn ich rufe Szenario ""Login"" aus Feature ""Auth""", "de", true)]
+    [InlineData(@"Dann ich rufe Szenario ""Login"" aus Feature ""Auth""", "de", true)]
+    [InlineData(@"Und ich rufe Szenario ""Login"" aus Feature ""Auth""", "de", true)]
+    [InlineData(@"Aber ich rufe Szenario ""Login"" aus Feature ""Auth""", "de", true)]
+    [InlineData(@"Soit j'appelle le scénario ""Login"" de la fonctionnalité ""Auth""", "fr", true)]
+    [InlineData(@"Quand j'appelle le scénario ""Login"" de la fonctionnalité ""Auth""", "fr", true)]
+    [InlineData(@"Alors j'appelle le scénario ""Login"" de la fonctionnalité ""Auth""", "fr", true)]
+    [InlineData(@"Et j'appelle le scénario ""Login"" de la fonctionnalité ""Auth""", "fr", true)]
+    [InlineData(@"Dado llamo al escenario ""Login"" de la funcionalidad ""Auth""", "es", true)]
+    [InlineData(@"Cuando llamo al escenario ""Login"" de la funcionalidad ""Auth""", "es", true)]
+    // Backward compatibility with English phrases in other languages
     [InlineData(@"Angenommen I call scenario ""Login"" from feature ""Auth""", "de", true)]
     [InlineData(@"Wenn I call scenario ""Login"" from feature ""Auth""", "de", true)]
-    [InlineData(@"Dann I call scenario ""Login"" from feature ""Auth""", "de", true)]
-    [InlineData(@"Und I call scenario ""Login"" from feature ""Auth""", "de", true)]
-    [InlineData(@"Aber I call scenario ""Login"" from feature ""Auth""", "de", true)]
     [InlineData(@"Soit I call scenario ""Login"" from feature ""Auth""", "fr", true)]
     [InlineData(@"Quand I call scenario ""Login"" from feature ""Auth""", "fr", true)]
-    [InlineData(@"Alors I call scenario ""Login"" from feature ""Auth""", "fr", true)]
-    [InlineData(@"Et I call scenario ""Login"" from feature ""Auth""", "fr", true)]
+    // Invalid cases
     [InlineData(@"Given I have some data", "en", false)]
     [InlineData(@"When I perform an action", "en", false)]
     [InlineData(@"I call scenario ""Test"" from feature ""Test""", "en", false)]
@@ -104,6 +113,11 @@ Scenario: Test Scenario";
     [Theory]
     [InlineData(@"Given I call scenario ""Login"" from feature ""Authentication""", "en", "Login", "Authentication")]
     [InlineData(@"When I call scenario ""Logout"" from feature ""User Management""", "en", "Logout", "User Management")]
+    // New localized scenario call phrases
+    [InlineData(@"Angenommen ich rufe Szenario ""Anmeldung"" aus Feature ""Authentifizierung""", "de", "Anmeldung", "Authentifizierung")]
+    [InlineData(@"Quand j'appelle le scénario ""Connexion"" de la fonctionnalité ""Authentification""", "fr", "Connexion", "Authentification")]
+    [InlineData(@"Dado llamo al escenario ""Inicio"" de la funcionalidad ""Autenticación""", "es", "Inicio", "Autenticación")]
+    // Backward compatibility with English phrases in other languages
     [InlineData(@"Angenommen I call scenario ""Anmeldung"" from feature ""Authentifizierung""", "de", "Anmeldung", "Authentifizierung")]
     [InlineData(@"Quand I call scenario ""Connexion"" from feature ""Authentification""", "fr", "Connexion", "Authentification")]
     public void ExtractScenarioCall_ExtractsCorrectInformation(string stepText, string language, string expectedScenario, string expectedFeature)
@@ -172,5 +186,22 @@ Scenario: Test Scenario";
 
         // Assert
         Assert.Same(dialect1, dialect2);
+    }
+
+    [Theory]
+    [InlineData("en", "I call scenario \"ScenarioName\" from feature \"FeatureName\"")]
+    [InlineData("de", "ich rufe Szenario \"ScenarioName\" aus Feature \"FeatureName\"")]
+    [InlineData("fr", "j'appelle le scénario \"ScenarioName\" de la fonctionnalité \"FeatureName\"")]
+    [InlineData("es", "llamo al escenario \"ScenarioName\" de la funcionalidad \"FeatureName\"")]
+    [InlineData("it", "chiamo lo scenario \"ScenarioName\" dalla funzionalità \"FeatureName\"")]
+    [InlineData("pt", "chamo o cenário \"ScenarioName\" da funcionalidade \"FeatureName\"")]
+    [InlineData("nl", "ik roep scenario \"ScenarioName\" van feature \"FeatureName\"")]
+    public void GetScenarioCallTemplate_ReturnsCorrectTemplate(string language, string expectedTemplate)
+    {
+        // Act
+        var result = _languageHelper.GetScenarioCallTemplate(language);
+
+        // Assert
+        Assert.Equal(expectedTemplate, result);
     }
 }

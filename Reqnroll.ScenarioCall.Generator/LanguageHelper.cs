@@ -136,6 +136,7 @@ namespace Reqnroll.ScenarioCall.Generator
                 return false;
 
             var dialect = GetDialect(language);
+            var phrases = GetScenarioCallPhrases(language);
             var allStepKeywords = new List<string>();
             allStepKeywords.AddRange(dialect.GivenStepKeywords);
             allStepKeywords.AddRange(dialect.WhenStepKeywords);
@@ -148,12 +149,27 @@ namespace Reqnroll.ScenarioCall.Generator
 
             foreach (var keyword in allStepKeywords)
             {
-                // Create pattern for each keyword: (keyword)\s+I call scenario "..." from feature "..."
+                // Create pattern for localized phrases: (keyword)\s+(call_scenario_phrase)\s+"..."\s+(from_feature_phrase)\s+"..."
                 var escapedKeyword = Regex.Escape(keyword.Trim());
-                var pattern = $@"^{escapedKeyword}\s+I call scenario\s+""([^""]+)""\s+from feature\s+""([^""]+)""";
+                var callPhrase = Regex.Escape(phrases["call_scenario"]);
+                var fromPhrase = Regex.Escape(phrases["from_feature"]);
+                var pattern = $@"^{escapedKeyword}\s+{callPhrase}\s+""([^""]+)""\s+{fromPhrase}\s+""([^""]+)""";
                 
                 if (Regex.IsMatch(stepText.Trim(), pattern, RegexOptions.IgnoreCase))
                     return true;
+            }
+
+            // Also check for backward compatibility with English phrases
+            if (language != "en")
+            {
+                foreach (var keyword in allStepKeywords)
+                {
+                    var escapedKeyword = Regex.Escape(keyword.Trim());
+                    var pattern = $@"^{escapedKeyword}\s+I call scenario\s+""([^""]+)""\s+from feature\s+""([^""]+)""";
+                    
+                    if (Regex.IsMatch(stepText.Trim(), pattern, RegexOptions.IgnoreCase))
+                        return true;
+                }
             }
 
             return false;
@@ -171,6 +187,7 @@ namespace Reqnroll.ScenarioCall.Generator
                 return null;
 
             var dialect = GetDialect(language);
+            var phrases = GetScenarioCallPhrases(language);
             var allStepKeywords = new List<string>();
             allStepKeywords.AddRange(dialect.GivenStepKeywords);
             allStepKeywords.AddRange(dialect.WhenStepKeywords);
@@ -183,8 +200,11 @@ namespace Reqnroll.ScenarioCall.Generator
 
             foreach (var keyword in allStepKeywords)
             {
+                // Try localized phrases first
                 var escapedKeyword = Regex.Escape(keyword.Trim());
-                var pattern = $@"^{escapedKeyword}\s+I call scenario\s+""([^""]+)""\s+from feature\s+""([^""]+)""";
+                var callPhrase = Regex.Escape(phrases["call_scenario"]);
+                var fromPhrase = Regex.Escape(phrases["from_feature"]);
+                var pattern = $@"^{escapedKeyword}\s+{callPhrase}\s+""([^""]+)""\s+{fromPhrase}\s+""([^""]+)""";
                 var match = Regex.Match(stepText.Trim(), pattern, RegexOptions.IgnoreCase);
                 
                 if (match.Success)
@@ -193,9 +213,83 @@ namespace Reqnroll.ScenarioCall.Generator
                     var featureName = match.Groups[2].Value;
                     return (scenarioName, featureName);
                 }
+
+                // Try backward compatibility with English phrases
+                if (language != "en")
+                {
+                    var englishPattern = $@"^{escapedKeyword}\s+I call scenario\s+""([^""]+)""\s+from feature\s+""([^""]+)""";
+                    var englishMatch = Regex.Match(stepText.Trim(), englishPattern, RegexOptions.IgnoreCase);
+                    
+                    if (englishMatch.Success)
+                    {
+                        var scenarioName = englishMatch.Groups[1].Value;
+                        var featureName = englishMatch.Groups[2].Value;
+                        return (scenarioName, featureName);
+                    }
+                }
             }
 
             return null;
+        }
+
+        /// <summary>
+        /// Gets localized scenario call phrases for different languages
+        /// </summary>
+        /// <param name="language">Language code</param>
+        /// <returns>Dictionary of phrase patterns for the language</returns>
+        private Dictionary<string, string> GetScenarioCallPhrases(string language)
+        {
+            var baseLanguage = language.Contains("-") ? language.Split('-')[0] : language;
+            
+            return baseLanguage.ToLower() switch
+            {
+                "de" => new Dictionary<string, string>
+                {
+                    ["call_scenario"] = "ich rufe Szenario",
+                    ["from_feature"] = "aus Feature"
+                },
+                "fr" => new Dictionary<string, string>
+                {
+                    ["call_scenario"] = "j'appelle le scénario",
+                    ["from_feature"] = "de la fonctionnalité"
+                },
+                "es" => new Dictionary<string, string>
+                {
+                    ["call_scenario"] = "llamo al escenario",
+                    ["from_feature"] = "de la funcionalidad"
+                },
+                "it" => new Dictionary<string, string>
+                {
+                    ["call_scenario"] = "chiamo lo scenario",
+                    ["from_feature"] = "dalla funzionalità"
+                },
+                "pt" => new Dictionary<string, string>
+                {
+                    ["call_scenario"] = "chamo o cenário",
+                    ["from_feature"] = "da funcionalidade"
+                },
+                "nl" => new Dictionary<string, string>
+                {
+                    ["call_scenario"] = "ik roep scenario",
+                    ["from_feature"] = "van feature"
+                },
+                _ => new Dictionary<string, string>
+                {
+                    ["call_scenario"] = "I call scenario",
+                    ["from_feature"] = "from feature"
+                }
+            };
+        }
+
+        /// <summary>
+        /// Gets the localized scenario call template for a given language
+        /// </summary>
+        /// <param name="language">Language code</param>
+        /// <returns>Template string showing the localized scenario call syntax</returns>
+        public string GetScenarioCallTemplate(string language = "en")
+        {
+            var phrases = GetScenarioCallPhrases(language);
+            return $"{phrases["call_scenario"]} \"ScenarioName\" {phrases["from_feature"]} \"FeatureName\"";
         }
 
         /// <summary>
