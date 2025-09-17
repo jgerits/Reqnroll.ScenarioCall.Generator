@@ -27,6 +27,7 @@ public abstract class ScenarioCallTestGenerator(
         featureGeneratorRegistry, codeDomHelper, gherkinParserFactory, generatorInfo)
 {
     private readonly Dictionary<string, string> _featureFileCache = new();
+    private readonly LanguageHelper _languageHelper = new();
 
     protected override ReqnrollDocument ParseContent(IGherkinParser parser, TextReader contentReader, ReqnrollDocumentLocation documentLocation)
     {
@@ -45,6 +46,9 @@ public abstract class ScenarioCallTestGenerator(
         var inScenario = false;
         var currentFeatureName = (from line in lines select line.Trim() into trimmedLine 
             where trimmedLine.StartsWith("Feature:") select trimmedLine.Substring("Feature:".Length).Trim()).FirstOrDefault();
+        
+        // Extract language from feature content
+        var language = _languageHelper.ExtractLanguage(originalContent);
 
         foreach (var line in lines)
         {
@@ -64,9 +68,9 @@ public abstract class ScenarioCallTestGenerator(
                 continue;
             }
                 
-            if (inScenario && IsScenarioCallStep(trimmedLine))
+            if (inScenario && _languageHelper.IsScenarioCallStep(trimmedLine, language))
             {
-                var expandedSteps = ExpandScenarioCall(line, currentFeatureName);
+                var expandedSteps = ExpandScenarioCall(line, currentFeatureName, language);
                 if (expandedSteps != null)
                 {
                     result.Append(expandedSteps);
@@ -87,16 +91,23 @@ public abstract class ScenarioCallTestGenerator(
 
     private bool IsScenarioCallStep(string stepText)
     {
-        return Regex.IsMatch(stepText, @"(Given|When|Then|And|But)\s+I call scenario ""([^""]+)"" from feature ""([^""]+)""", RegexOptions.IgnoreCase);
+        // Deprecated: Use LanguageHelper.IsScenarioCallStep instead
+        return _languageHelper.IsScenarioCallStep(stepText, "en");
     }
 
     private string ExpandScenarioCall(string callStepLine, string currentFeatureName)
     {
-        var match = Regex.Match(callStepLine, @"(Given|When|Then|And|But)\s+I call scenario ""([^""]+)"" from feature ""([^""]+)""", RegexOptions.IgnoreCase);
-        if (!match.Success) return null;
+        // Backward compatibility overload - defaults to English
+        return ExpandScenarioCall(callStepLine, currentFeatureName, "en");
+    }
 
-        var scenarioName = match.Groups[2].Value;
-        var featureName = match.Groups[3].Value;
+    private string ExpandScenarioCall(string callStepLine, string currentFeatureName, string language = "en")
+    {
+        var scenarioCallInfo = _languageHelper.ExtractScenarioCall(callStepLine, language);
+        if (!scenarioCallInfo.HasValue) 
+            return null;
+
+        var (scenarioName, featureName) = scenarioCallInfo.Value;
         var leadingWhitespace = callStepLine.Substring(0, callStepLine.Length - callStepLine.TrimStart().Length);
 
         try
@@ -132,6 +143,9 @@ public abstract class ScenarioCallTestGenerator(
         var steps = new List<string>();
         var inTargetScenario = false;
         var foundFeature = false;
+        
+        // Extract language from the feature file we're reading from
+        var featureLanguage = _languageHelper.ExtractLanguage(featureContent);
 
         foreach (var line in lines)
         {
@@ -158,7 +172,7 @@ public abstract class ScenarioCallTestGenerator(
                 break;
             }
 
-            if (inTargetScenario && IsStepLine(trimmedLine))
+            if (inTargetScenario && _languageHelper.IsStepLine(trimmedLine, featureLanguage))
             {
                 steps.Add(trimmedLine);
             }
@@ -169,6 +183,7 @@ public abstract class ScenarioCallTestGenerator(
 
     private bool IsStepLine(string line)
     {
+        // Deprecated: Use LanguageHelper.IsStepLine instead
         return line.StartsWith("Given ") || 
                line.StartsWith("When ") || 
                line.StartsWith("Then ") || 
