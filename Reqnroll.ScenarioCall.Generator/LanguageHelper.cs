@@ -75,10 +75,31 @@ namespace Reqnroll.ScenarioCall.Generator
             }
             catch
             {
-                // Fallback to English if language not supported
-                var fallbackDialect = _dialectProvider.GetDialect("en", null);
-                _dialectCache[language] = fallbackDialect;
-                return fallbackDialect;
+                // Try fallback to base language if culture-specific fails (similar to Reqnroll)
+                if (language.Contains("-"))
+                {
+                    try
+                    {
+                        var baseLanguage = language.Split('-')[0];
+                        var fallbackDialect = _dialectProvider.GetDialect(baseLanguage, null);
+                        _dialectCache[language] = fallbackDialect;
+                        return fallbackDialect;
+                    }
+                    catch
+                    {
+                        // Final fallback to English
+                        var englishDialect = _dialectProvider.GetDialect("en", null);
+                        _dialectCache[language] = englishDialect;
+                        return englishDialect;
+                    }
+                }
+                else
+                {
+                    // Fallback to English if language not supported
+                    var fallbackDialect = _dialectProvider.GetDialect("en", null);
+                    _dialectCache[language] = fallbackDialect;
+                    return fallbackDialect;
+                }
             }
         }
 

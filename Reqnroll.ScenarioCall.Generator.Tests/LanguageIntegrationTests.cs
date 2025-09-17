@@ -25,12 +25,12 @@ public class LanguageIntegrationTests
         var originalContent = @"#language: de-DE
 Feature: Test Feature
 Scenario: Test Scenario
-    Gegeben sei I call scenario ""Anmeldung"" from feature ""Authentifizierung""";
+    Angenommen I call scenario ""Anmeldung"" from feature ""Authentifizierung""";
 
         SetupFeatureFileContent("Authentifizierung", @"#language: de-DE
 Feature: Authentifizierung
 Scenario: Anmeldung
-    Gegeben sei ich bin auf der Anmeldeseite
+    Angenommen ich bin auf der Anmeldeseite
     Wenn ich die Anmeldedaten eingebe
     Dann sollte ich angemeldet sein");
 
@@ -39,7 +39,7 @@ Scenario: Anmeldung
 
         // Assert
         Assert.Contains("# Expanded from scenario call", result);
-        Assert.Contains("Gegeben sei ich bin auf der Anmeldeseite", result);
+        Assert.Contains("Angenommen ich bin auf der Anmeldeseite", result);
         Assert.Contains("Wenn ich die Anmeldedaten eingebe", result);
         Assert.Contains("Dann sollte ich angemeldet sein", result);
     }
@@ -51,12 +51,12 @@ Scenario: Anmeldung
         var originalContent = @"#language: fr-FR
 Feature: Fonctionnalité de test
 Scenario: Scénario de test
-    Étant donné I call scenario ""Connexion"" from feature ""Authentification""";
+    Soit I call scenario ""Connexion"" from feature ""Authentification""";
 
         SetupFeatureFileContent("Authentification", @"#language: fr-FR
 Feature: Authentification
 Scenario: Connexion
-    Étant donné que je suis sur la page de connexion
+    Soit que je suis sur la page de connexion
     Quand je saisis mes identifiants
     Alors je devrais être connecté");
 
@@ -65,7 +65,7 @@ Scenario: Connexion
 
         // Assert
         Assert.Contains("# Expanded from scenario call", result);
-        Assert.Contains("Étant donné que je suis sur la page de connexion", result);
+        Assert.Contains("Soit que je suis sur la page de connexion", result);
         Assert.Contains("Quand je saisis mes identifiants", result);
         Assert.Contains("Alors je devrais être connecté", result);
     }
