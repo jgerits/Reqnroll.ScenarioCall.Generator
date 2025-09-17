@@ -97,6 +97,32 @@ Scenario: Inicio de sesión
     }
 
     [Fact]
+    public void PreprocessFeatureContent_WithDutchLanguage_ExpandsScenarioCall()
+    {
+        // Arrange - Dutch keywords and localized scenario call phrase
+        var originalContent = @"#language: nl-NL
+Feature: Gebruikers authenticatie
+Scenario: Succesvolle inloggen
+    Gegeven ik roep scenario ""Inloggen"" van feature ""Authenticatie""";
+
+        SetupFeatureFileContent("Authenticatie", @"#language: nl-NL
+Feature: Authenticatie
+Scenario: Inloggen
+    Gegeven ik ben op de inlogpagina
+    Als ik geldige inloggegevens invoer
+    Dan zou ik succesvol ingelogd moeten zijn");
+
+        // Act
+        var result = _generator.PreprocessFeatureContent(originalContent);
+
+        // Assert
+        Assert.Contains("# Expanded from scenario call", result);
+        Assert.Contains("Gegeven ik ben op de inlogpagina", result);
+        Assert.Contains("Als ik geldige inloggegevens invoer", result);
+        Assert.Contains("Dan zou ik succesvol ingelogd moeten zijn", result);
+    }
+
+    [Fact]
     public void PreprocessFeatureContent_WithMixedLanguages_HandlesCorrectly()
     {
         // Arrange - Main feature in English, calling German feature

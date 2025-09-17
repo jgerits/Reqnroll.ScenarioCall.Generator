@@ -52,6 +52,30 @@ Scenario: Connexion réussie
   Alors je devrais voir la page d'accueil
 ```
 
+#### Dutch Example
+
+```gherkin
+#language: nl-NL
+Feature: Gebruikers authenticatie
+  Als een gebruiker wil ik kunnen inloggen
+  Zodat ik toegang heb tot de applicatie
+
+Scenario: Succesvolle inloggen
+  Gegeven ik roep scenario "Voorbereiding" van feature "Configuratie"
+  En ik roep scenario "Inloggen" van feature "Authenticatie"
+  Dan zou ik het dashboard moeten zien
+```
+
+Referenced Dutch feature file (`Authenticatie.feature`):
+```gherkin
+#language: nl-NL
+Feature: Authenticatie
+Scenario: Inloggen
+  Gegeven ik ben op de inlogpagina
+  Als ik geldige inloggegevens invoer
+  Dan zou ik succesvol ingelogd moeten zijn
+```
+
 #### Mixed Language Support
 
 You can call scenarios from features written in different languages:

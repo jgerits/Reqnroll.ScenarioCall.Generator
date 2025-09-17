@@ -91,6 +91,10 @@ Scenario: Test Scenario";
     [InlineData(@"Et j'appelle le scénario ""Login"" de la fonctionnalité ""Auth""", "fr", true)]
     [InlineData(@"Dado llamo al escenario ""Login"" de la funcionalidad ""Auth""", "es", true)]
     [InlineData(@"Cuando llamo al escenario ""Login"" de la funcionalidad ""Auth""", "es", true)]
+    [InlineData(@"Gegeven ik roep scenario ""Login"" van feature ""Auth""", "nl", true)]
+    [InlineData(@"Als ik roep scenario ""Login"" van feature ""Auth""", "nl", true)]
+    [InlineData(@"Dan ik roep scenario ""Login"" van feature ""Auth""", "nl", true)]
+    [InlineData(@"En ik roep scenario ""Login"" van feature ""Auth""", "nl", true)]
     // Backward compatibility with English phrases in other languages
     [InlineData(@"Angenommen I call scenario ""Login"" from feature ""Auth""", "de", true)]
     [InlineData(@"Wenn I call scenario ""Login"" from feature ""Auth""", "de", true)]
@@ -117,6 +121,7 @@ Scenario: Test Scenario";
     [InlineData(@"Angenommen ich rufe Szenario ""Anmeldung"" aus Feature ""Authentifizierung""", "de", "Anmeldung", "Authentifizierung")]
     [InlineData(@"Quand j'appelle le scénario ""Connexion"" de la fonctionnalité ""Authentification""", "fr", "Connexion", "Authentification")]
     [InlineData(@"Dado llamo al escenario ""Inicio"" de la funcionalidad ""Autenticación""", "es", "Inicio", "Autenticación")]
+    [InlineData(@"Gegeven ik roep scenario ""Inloggen"" van feature ""Authenticatie""", "nl", "Inloggen", "Authenticatie")]
     // Backward compatibility with English phrases in other languages
     [InlineData(@"Angenommen I call scenario ""Anmeldung"" from feature ""Authentifizierung""", "de", "Anmeldung", "Authentifizierung")]
     [InlineData(@"Quand I call scenario ""Connexion"" from feature ""Authentification""", "fr", "Connexion", "Authentification")]
