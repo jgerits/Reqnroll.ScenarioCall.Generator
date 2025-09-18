@@ -14,6 +14,7 @@ public class ScenarioCallFeatureGenerator : IFeatureGenerator
 {
     private readonly IFeatureGenerator _baseGenerator;
     private readonly Dictionary<string, string> _featureFileCache = new();
+    private readonly LanguageHelper _languageHelper = new();
 
     public ScenarioCallFeatureGenerator(IFeatureGenerator baseGenerator, ReqnrollDocument document)
     {
@@ -26,6 +27,9 @@ public class ScenarioCallFeatureGenerator : IFeatureGenerator
         var result = new StringBuilder();
         var inScenario = false;
         var currentFeatureName = (from line in lines select line.Trim() into trimmedLine where trimmedLine.StartsWith("Feature:") select trimmedLine.Substring("Feature:".Length).Trim()).FirstOrDefault();
+        
+        // Extract language from feature content
+        var language = _languageHelper.ExtractLanguage(originalContent);
 
         foreach (var line in lines)
         {
@@ -38,9 +42,9 @@ public class ScenarioCallFeatureGenerator : IFeatureGenerator
                 continue;
             }
                 
-            if (inScenario && IsScenarioCallStep(trimmedLine))
+            if (inScenario && _languageHelper.IsScenarioCallStep(trimmedLine, language))
             {
-                var expandedSteps = ExpandScenarioCall(trimmedLine, currentFeatureName);
+                var expandedSteps = ExpandScenarioCall(trimmedLine, currentFeatureName, language);
                 if (expandedSteps != null)
                 {
                     result.Append(expandedSteps);
@@ -62,16 +66,23 @@ public class ScenarioCallFeatureGenerator : IFeatureGenerator
 
     private bool IsScenarioCallStep(string stepText)
     {
-        return Regex.IsMatch(stepText, @"(Given|When|Then|And|But)\s+I call scenario ""([^""]+)"" from feature ""([^""]+)""", RegexOptions.IgnoreCase);
+        // Deprecated: Use LanguageHelper.IsScenarioCallStep instead
+        return _languageHelper.IsScenarioCallStep(stepText, "en");
     }
 
     private string ExpandScenarioCall(string callStepLine, string currentFeatureName)
     {
-        var match = Regex.Match(callStepLine, @"(Given|When|Then|And|But)\s+I call scenario ""([^""]+)"" from feature ""([^""]+)""", RegexOptions.IgnoreCase);
-        if (!match.Success) return null;
+        // Backward compatibility overload - defaults to English
+        return ExpandScenarioCall(callStepLine, currentFeatureName, "en");
+    }
 
-        var scenarioName = match.Groups[2].Value;
-        var featureName = match.Groups[3].Value;
+    private string ExpandScenarioCall(string callStepLine, string currentFeatureName, string language = "en")
+    {
+        var scenarioCallInfo = _languageHelper.ExtractScenarioCall(callStepLine, language);
+        if (!scenarioCallInfo.HasValue) 
+            return null;
+
+        var (scenarioName, featureName) = scenarioCallInfo.Value;
         var leadingWhitespace = callStepLine.Substring(0, callStepLine.Length - callStepLine.TrimStart().Length);
 
         try
@@ -107,6 +118,9 @@ public class ScenarioCallFeatureGenerator : IFeatureGenerator
         var steps = new List<string>();
         var inTargetScenario = false;
         var foundFeature = false;
+        
+        // Extract language from the feature file we're reading from
+        var featureLanguage = _languageHelper.ExtractLanguage(featureContent);
 
         foreach (var line in lines)
         {
@@ -136,8 +150,8 @@ public class ScenarioCallFeatureGenerator : IFeatureGenerator
                 break;
             }
 
-            // Collect steps from target scenario
-            if (inTargetScenario && IsStepLine(trimmedLine))
+            // Collect steps from target scenario using language-aware detection
+            if (inTargetScenario && _languageHelper.IsStepLine(trimmedLine, featureLanguage))
             {
                 steps.Add(trimmedLine);
             }
@@ -148,7 +162,8 @@ public class ScenarioCallFeatureGenerator : IFeatureGenerator
 
     private static bool IsStepLine(string line)
     {
-            
+        // Deprecated: Use LanguageHelper.IsStepLine instead
+        // Kept for backward compatibility but updated to use constants
         return line.StartsWith($"{StepDefinitionKeyword.Given} ") || 
                line.StartsWith($"{StepDefinitionKeyword.When} ") || 
                line.StartsWith($"{StepDefinitionKeyword.Then} ") || 

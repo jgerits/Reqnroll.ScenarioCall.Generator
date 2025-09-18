@@ -167,6 +167,24 @@ Scenario: Complete Login Flow
 - Scenario names are case-insensitive
 - File discovery is case-insensitive
 
+## Language Support
+
+The plugin supports multiple languages through Gherkin's language specification. You can use both localized step keywords AND localized scenario call phrases.
+
+```gherkin
+#language: de-DE
+Feature: Benutzeranmeldung
+Scenario: Erfolgreiche Anmeldung
+    Angenommen ich rufe Szenario "Login" aus Feature "Authentication"
+    Dann sollte ich angemeldet sein
+```
+
+**Supported languages include**: German, French, Spanish, Portuguese, Italian, Dutch, and all other Gherkin-supported languages.
+
+**New**: Scenario call phrases are now fully localized (e.g., German: `ich rufe Szenario "..." aus Feature "..."`)
+
+For detailed examples and usage, see [Language Support Documentation](README-LanguageSupport.md).
+
 ## Requirements
 
 - .NET Standard 2.0 or higher

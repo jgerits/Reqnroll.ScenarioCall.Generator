@@ -349,7 +349,13 @@ Scenario: Logout
 
     private T CallPrivateMethod<T>(object obj, string methodName, params object[] parameters)
     {
-        var method = obj.GetType().GetMethod(methodName, System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+        var parameterTypes = parameters.Select(p => p?.GetType()).ToArray();
+        var method = obj.GetType().GetMethod(methodName, System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance, null, parameterTypes, null);
+        if (method == null)
+        {
+            // Fallback to old method resolution for backwards compatibility
+            method = obj.GetType().GetMethod(methodName, System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+        }
         if (method == null)
         {
             throw new ArgumentException($"Method {methodName} not found");
