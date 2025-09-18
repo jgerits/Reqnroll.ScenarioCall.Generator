@@ -11,7 +11,7 @@ using Xunit;
 
 namespace Reqnroll.ScenarioCall.Generator.Tests;
 
-public class ScenarioCallFeatureGeneratorSimpleTests
+public class ScenarioCallFeatureGeneratorSimpleTests : TestWithTempDirectory
 {
     private readonly Mock<IFeatureGenerator> _mockBaseGenerator;
     private readonly ScenarioCallFeatureGenerator _generator;
@@ -332,25 +332,10 @@ Scenario: Logout
         Assert.Contains("Given I click logout", result);
     }
 
-    private void SetupFeatureFileContent(string featureName, string content)
-    {
-        // Create a temporary feature file for testing in a safe location
-        var tempDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
-        Directory.CreateDirectory(tempDir);
-        var featuresDir = Path.Combine(tempDir, "Features");
-        Directory.CreateDirectory(featuresDir);
-        
-        var featureFile = Path.Combine(featuresDir, $"{featureName}.feature");
-        File.WriteAllText(featureFile, content);
-
-        // Set the current directory to the temp directory so the generator can find the files
-        Environment.CurrentDirectory = tempDir;
-    }
-
     private T CallPrivateMethod<T>(object obj, string methodName, params object[] parameters)
     {
-        var parameterTypes = parameters.Select(p => p?.GetType()).ToArray();
-        var method = obj.GetType().GetMethod(methodName, System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance, null, parameterTypes, null);
+        var parameterTypes = parameters.Select(p => p?.GetType()).Where(t => t != null).ToArray();
+        var method = obj.GetType().GetMethod(methodName, System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance, null, parameterTypes!, null);
         if (method == null)
         {
             // Fallback to old method resolution for backwards compatibility

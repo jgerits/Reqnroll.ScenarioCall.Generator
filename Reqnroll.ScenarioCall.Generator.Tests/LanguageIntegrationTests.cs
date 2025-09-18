@@ -7,7 +7,7 @@ using Xunit;
 
 namespace Reqnroll.ScenarioCall.Generator.Tests;
 
-public class LanguageIntegrationTests
+public class LanguageIntegrationTests : TestWithTempDirectory
 {
     private readonly Mock<IFeatureGenerator> _mockBaseGenerator;
     private readonly ScenarioCallFeatureGenerator _generator;
@@ -285,18 +285,4 @@ Scenario: Login
         Assert.Contains("Given I am on the login page", result);
     }
 
-    private void SetupFeatureFileContent(string featureName, string content)
-    {
-        // Create a temporary feature file for testing in a safe location
-        var tempDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
-        Directory.CreateDirectory(tempDir);
-        var featuresDir = Path.Combine(tempDir, "Features");
-        Directory.CreateDirectory(featuresDir);
-        
-        var featureFile = Path.Combine(featuresDir, $"{featureName}.feature");
-        File.WriteAllText(featureFile, content);
-
-        // Set the current directory to the temp directory so the generator can find the files
-        Environment.CurrentDirectory = tempDir;
-    }
 }
