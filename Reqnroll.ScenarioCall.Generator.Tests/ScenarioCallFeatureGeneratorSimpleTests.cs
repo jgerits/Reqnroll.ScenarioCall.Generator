@@ -11,11 +11,10 @@ using Xunit;
 
 namespace Reqnroll.ScenarioCall.Generator.Tests;
 
-public class ScenarioCallFeatureGeneratorSimpleTests
+public class ScenarioCallFeatureGeneratorSimpleTests : TestWithTempDirectory
 {
     private readonly Mock<IFeatureGenerator> _mockBaseGenerator;
     private readonly ScenarioCallFeatureGenerator _generator;
-    private string? _tempDir;
 
     public ScenarioCallFeatureGeneratorSimpleTests()
     {
@@ -331,26 +330,6 @@ Scenario: Logout
         // Assert
         Assert.Contains("Given I am on the login page", result);
         Assert.Contains("Given I click logout", result);
-    }
-
-    private void SetupFeatureFileContent(string featureName, string content)
-    {
-        // Create a temporary feature file for testing in a safe location
-        // Use the same temp directory for all calls during a test
-        if (_tempDir == null)
-        {
-            _tempDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
-            Directory.CreateDirectory(_tempDir);
-            var featuresDir = Path.Combine(_tempDir, "Features");
-            Directory.CreateDirectory(featuresDir);
-            
-            // Set the current directory to the temp directory so the generator can find the files
-            Environment.CurrentDirectory = _tempDir;
-        }
-        
-        var featuresDirectory = Path.Combine(_tempDir, "Features");
-        var featureFile = Path.Combine(featuresDirectory, $"{featureName}.feature");
-        File.WriteAllText(featureFile, content);
     }
 
     private T CallPrivateMethod<T>(object obj, string methodName, params object[] parameters)
