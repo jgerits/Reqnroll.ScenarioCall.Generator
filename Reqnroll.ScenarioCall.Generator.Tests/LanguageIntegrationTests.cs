@@ -285,18 +285,25 @@ Scenario: Login
         Assert.Contains("Given I am on the login page", result);
     }
 
+    private string? _tempDir;
+
     private void SetupFeatureFileContent(string featureName, string content)
     {
         // Create a temporary feature file for testing in a safe location
-        var tempDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
-        Directory.CreateDirectory(tempDir);
-        var featuresDir = Path.Combine(tempDir, "Features");
-        Directory.CreateDirectory(featuresDir);
+        // Use the same temp directory for all calls during a test
+        if (_tempDir == null)
+        {
+            _tempDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+            Directory.CreateDirectory(_tempDir);
+            var featuresDir = Path.Combine(_tempDir, "Features");
+            Directory.CreateDirectory(featuresDir);
+            
+            // Set the current directory to the temp directory so the generator can find the files
+            Environment.CurrentDirectory = _tempDir;
+        }
         
-        var featureFile = Path.Combine(featuresDir, $"{featureName}.feature");
+        var featuresDirectory = Path.Combine(_tempDir, "Features");
+        var featureFile = Path.Combine(featuresDirectory, $"{featureName}.feature");
         File.WriteAllText(featureFile, content);
-
-        // Set the current directory to the temp directory so the generator can find the files
-        Environment.CurrentDirectory = tempDir;
     }
 }
