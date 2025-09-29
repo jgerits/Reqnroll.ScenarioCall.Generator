@@ -12,6 +12,7 @@ public class LanguageIntegrationTests : IDisposable
     private readonly Mock<IFeatureGenerator> _mockBaseGenerator;
     private readonly ScenarioCallFeatureGenerator _generator;
     private readonly string _originalCurrentDirectory;
+    private readonly List<string> _tempDirectories = new();
 
     public LanguageIntegrationTests()
     {
@@ -24,6 +25,22 @@ public class LanguageIntegrationTests : IDisposable
     {
         // Restore the original current directory
         Environment.CurrentDirectory = _originalCurrentDirectory;
+        
+        // Clean up temporary directories
+        foreach (var tempDir in _tempDirectories)
+        {
+            try
+            {
+                if (Directory.Exists(tempDir))
+                {
+                    Directory.Delete(tempDir, true);
+                }
+            }
+            catch
+            {
+                // Ignore cleanup errors
+            }
+        }
     }
 
     [Fact]
@@ -296,8 +313,10 @@ Scenario: Login
     private void SetupFeatureFileContent(string featureName, string content)
     {
         // Create a temporary feature file for testing in a safe location
-        var tempDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+        var tempDir = Path.Combine(Path.GetTempPath(), $"reqnroll-test-{Guid.NewGuid()}");
         Directory.CreateDirectory(tempDir);
+        _tempDirectories.Add(tempDir);
+        
         var featuresDir = Path.Combine(tempDir, "Features");
         Directory.CreateDirectory(featuresDir);
         
