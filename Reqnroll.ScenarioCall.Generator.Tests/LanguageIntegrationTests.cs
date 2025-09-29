@@ -17,9 +17,46 @@ public class LanguageIntegrationTests : IDisposable
 
     public LanguageIntegrationTests()
     {
-        _originalCurrentDirectory = Environment.CurrentDirectory;
+        // Safely get the original current directory with fallback
+        _originalCurrentDirectory = GetSafeCurrentDirectory();
         _mockBaseGenerator = new Mock<IFeatureGenerator>();
         _generator = new ScenarioCallFeatureGenerator(_mockBaseGenerator.Object, null!);
+    }
+
+    private static string GetSafeCurrentDirectory()
+    {
+        try
+        {
+            return Environment.CurrentDirectory;
+        }
+        catch (FileNotFoundException)
+        {
+            // If current directory was deleted, use a safe fallback
+            try
+            {
+                var fallback = Path.GetTempPath();
+                Environment.CurrentDirectory = fallback;
+                return fallback;
+            }
+            catch
+            {
+                // Last resort - use root directory
+                var root = Path.GetPathRoot(Environment.SystemDirectory) ?? "/";
+                Environment.CurrentDirectory = root;
+                return root;
+            }
+        }
+        catch
+        {
+            // Any other exception, fallback to temp path
+            var fallback = Path.GetTempPath();
+            try
+            {
+                Environment.CurrentDirectory = fallback;
+            }
+            catch { }
+            return fallback;
+        }
     }
 
     public void Dispose()
