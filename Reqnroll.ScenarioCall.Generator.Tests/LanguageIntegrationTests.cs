@@ -7,15 +7,23 @@ using Xunit;
 
 namespace Reqnroll.ScenarioCall.Generator.Tests;
 
-public class LanguageIntegrationTests
+public class LanguageIntegrationTests : IDisposable
 {
     private readonly Mock<IFeatureGenerator> _mockBaseGenerator;
     private readonly ScenarioCallFeatureGenerator _generator;
+    private readonly string _originalCurrentDirectory;
 
     public LanguageIntegrationTests()
     {
+        _originalCurrentDirectory = Environment.CurrentDirectory;
         _mockBaseGenerator = new Mock<IFeatureGenerator>();
         _generator = new ScenarioCallFeatureGenerator(_mockBaseGenerator.Object, null!);
+    }
+
+    public void Dispose()
+    {
+        // Restore the original current directory
+        Environment.CurrentDirectory = _originalCurrentDirectory;
     }
 
     [Fact]
