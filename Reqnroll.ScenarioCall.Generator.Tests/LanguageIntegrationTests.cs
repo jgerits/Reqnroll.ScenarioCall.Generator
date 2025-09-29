@@ -13,6 +13,7 @@ public class LanguageIntegrationTests : IDisposable
     private readonly ScenarioCallFeatureGenerator _generator;
     private readonly string _originalCurrentDirectory;
     private readonly List<string> _tempDirectories = new();
+    private string? _currentTestTempDirectory; // Track current test's temp directory
 
     public LanguageIntegrationTests()
     {
@@ -23,10 +24,29 @@ public class LanguageIntegrationTests : IDisposable
 
     public void Dispose()
     {
-        // Restore the original current directory
-        Environment.CurrentDirectory = _originalCurrentDirectory;
+        try
+        {
+            // Restore the original current directory FIRST before cleanup
+            if (Directory.Exists(_originalCurrentDirectory))
+            {
+                Environment.CurrentDirectory = _originalCurrentDirectory;
+            }
+        }
+        catch
+        {
+            // If original directory doesn't exist, try to go to a safe directory
+            try
+            {
+                Environment.CurrentDirectory = Path.GetTempPath();
+            }
+            catch
+            {
+                // Last resort - go to root
+                Environment.CurrentDirectory = Path.GetPathRoot(Environment.CurrentDirectory) ?? "/";
+            }
+        }
         
-        // Clean up temporary directories
+        // Clean up temporary directories AFTER changing directory
         foreach (var tempDir in _tempDirectories)
         {
             try
@@ -41,6 +61,9 @@ public class LanguageIntegrationTests : IDisposable
                 // Ignore cleanup errors
             }
         }
+        
+        // Reset for next test
+        _currentTestTempDirectory = null;
     }
 
     [Fact]
@@ -312,18 +335,23 @@ Scenario: Login
 
     private void SetupFeatureFileContent(string featureName, string content)
     {
-        // Create a temporary feature file for testing in a safe location
-        var tempDir = Path.Combine(Path.GetTempPath(), $"reqnroll-test-{Guid.NewGuid()}");
-        Directory.CreateDirectory(tempDir);
-        _tempDirectories.Add(tempDir);
-        
-        var featuresDir = Path.Combine(tempDir, "Features");
-        Directory.CreateDirectory(featuresDir);
-        
-        var featureFile = Path.Combine(featuresDir, $"{featureName}.feature");
-        File.WriteAllText(featureFile, content);
+        // Create temp directory only if we don't have one for this test yet
+        if (_currentTestTempDirectory == null)
+        {
+            _currentTestTempDirectory = Path.Combine(Path.GetTempPath(), $"reqnroll-test-{Guid.NewGuid()}");
+            Directory.CreateDirectory(_currentTestTempDirectory);
+            _tempDirectories.Add(_currentTestTempDirectory);
 
-        // Set the current directory to the temp directory so the generator can find the files
-        Environment.CurrentDirectory = tempDir;
+            var featuresDir = Path.Combine(_currentTestTempDirectory, "Features");
+            Directory.CreateDirectory(featuresDir);
+
+            // Set the current directory to the temp directory so the generator can find the files
+            Environment.CurrentDirectory = _currentTestTempDirectory;
+        }
+
+        // Add the feature file to the existing temp directory
+        var featuresDirPath = Path.Combine(_currentTestTempDirectory, "Features");
+        var featureFile = Path.Combine(featuresDirPath, $"{featureName}.feature");
+        File.WriteAllText(featureFile, content);
     }
 }
