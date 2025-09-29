@@ -14,16 +14,14 @@ using Reqnroll.Parser;
 
 namespace Reqnroll.ScenarioCall.Generator;
 
-public abstract class ScenarioCallTestGenerator(
+public class ScenarioCallTestGenerator(
     ReqnrollConfiguration reqnrollConfiguration,
     ProjectSettings projectSettings,
-    ITestHeaderWriter testHeaderWriter,
-    ITestUpToDateChecker testUpToDateChecker,
     IFeatureGeneratorRegistry featureGeneratorRegistry,
     CodeDomHelper codeDomHelper,
     IGherkinParserFactory gherkinParserFactory,
     GeneratorInfo generatorInfo)
-    : TestGenerator(reqnrollConfiguration, projectSettings, testHeaderWriter, testUpToDateChecker,
+    : TestGenerator(reqnrollConfiguration, projectSettings,
         featureGeneratorRegistry, codeDomHelper, gherkinParserFactory, generatorInfo)
 {
     private readonly Dictionary<string, string> _featureFileCache = new();

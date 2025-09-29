@@ -349,7 +349,7 @@ Scenario: Logout
 
     private T CallPrivateMethod<T>(object obj, string methodName, params object[] parameters)
     {
-        var parameterTypes = parameters.Select(p => p?.GetType()).ToArray();
+        var parameterTypes = parameters.Select(p => p?.GetType()!).ToArray();
         var method = obj.GetType().GetMethod(methodName, System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance, null, parameterTypes, null);
         if (method == null)
         {
