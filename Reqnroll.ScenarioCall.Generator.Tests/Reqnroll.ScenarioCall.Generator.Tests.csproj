@@ -21,11 +21,15 @@
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
     <PackageReference Include="Moq" Version="4.20.72" />
-    <PackageReference Include="Reqnroll.CustomPlugin" Version="3.0.2" />
+    <PackageReference Include="Reqnroll.CustomPlugin" Version="3.1.0" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\Reqnroll.ScenarioCall.Generator\Reqnroll.ScenarioCall.Generator.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="xunit.runner.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>

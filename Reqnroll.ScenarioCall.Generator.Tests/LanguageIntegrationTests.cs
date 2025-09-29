@@ -7,15 +7,100 @@ using Xunit;
 
 namespace Reqnroll.ScenarioCall.Generator.Tests;
 
-public class LanguageIntegrationTests
+public class LanguageIntegrationTests : IDisposable
 {
     private readonly Mock<IFeatureGenerator> _mockBaseGenerator;
     private readonly ScenarioCallFeatureGenerator _generator;
+    private readonly string _originalCurrentDirectory;
+    private readonly List<string> _tempDirectories = new();
+    private string? _currentTestTempDirectory; // Track current test's temp directory
 
     public LanguageIntegrationTests()
     {
+        // Safely get the original current directory with fallback
+        _originalCurrentDirectory = GetSafeCurrentDirectory();
         _mockBaseGenerator = new Mock<IFeatureGenerator>();
         _generator = new ScenarioCallFeatureGenerator(_mockBaseGenerator.Object, null!);
+    }
+
+    private static string GetSafeCurrentDirectory()
+    {
+        try
+        {
+            return Environment.CurrentDirectory;
+        }
+        catch (FileNotFoundException)
+        {
+            // If current directory was deleted, use a safe fallback
+            try
+            {
+                var fallback = Path.GetTempPath();
+                Environment.CurrentDirectory = fallback;
+                return fallback;
+            }
+            catch
+            {
+                // Last resort - use root directory
+                var root = Path.GetPathRoot(Environment.SystemDirectory) ?? "/";
+                Environment.CurrentDirectory = root;
+                return root;
+            }
+        }
+        catch
+        {
+            // Any other exception, fallback to temp path
+            var fallback = Path.GetTempPath();
+            try
+            {
+                Environment.CurrentDirectory = fallback;
+            }
+            catch { }
+            return fallback;
+        }
+    }
+
+    public void Dispose()
+    {
+        try
+        {
+            // Restore the original current directory FIRST before cleanup
+            if (Directory.Exists(_originalCurrentDirectory))
+            {
+                Environment.CurrentDirectory = _originalCurrentDirectory;
+            }
+        }
+        catch
+        {
+            // If original directory doesn't exist, try to go to a safe directory
+            try
+            {
+                Environment.CurrentDirectory = Path.GetTempPath();
+            }
+            catch
+            {
+                // Last resort - go to root
+                Environment.CurrentDirectory = Path.GetPathRoot(Environment.CurrentDirectory) ?? "/";
+            }
+        }
+        
+        // Clean up temporary directories AFTER changing directory
+        foreach (var tempDir in _tempDirectories)
+        {
+            try
+            {
+                if (Directory.Exists(tempDir))
+                {
+                    Directory.Delete(tempDir, true);
+                }
+            }
+            catch
+            {
+                // Ignore cleanup errors
+            }
+        }
+        
+        // Reset for next test
+        _currentTestTempDirectory = null;
     }
 
     [Fact]
@@ -287,16 +372,23 @@ Scenario: Login
 
     private void SetupFeatureFileContent(string featureName, string content)
     {
-        // Create a temporary feature file for testing in a safe location
-        var tempDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
-        Directory.CreateDirectory(tempDir);
-        var featuresDir = Path.Combine(tempDir, "Features");
-        Directory.CreateDirectory(featuresDir);
-        
-        var featureFile = Path.Combine(featuresDir, $"{featureName}.feature");
-        File.WriteAllText(featureFile, content);
+        // Create temp directory only if we don't have one for this test yet
+        if (_currentTestTempDirectory == null)
+        {
+            _currentTestTempDirectory = Path.Combine(Path.GetTempPath(), $"reqnroll-test-{Guid.NewGuid()}");
+            Directory.CreateDirectory(_currentTestTempDirectory);
+            _tempDirectories.Add(_currentTestTempDirectory);
 
-        // Set the current directory to the temp directory so the generator can find the files
-        Environment.CurrentDirectory = tempDir;
+            var featuresDir = Path.Combine(_currentTestTempDirectory, "Features");
+            Directory.CreateDirectory(featuresDir);
+
+            // Set the current directory to the temp directory so the generator can find the files
+            Environment.CurrentDirectory = _currentTestTempDirectory;
+        }
+
+        // Add the feature file to the existing temp directory
+        var featuresDirPath = Path.Combine(_currentTestTempDirectory, "Features");
+        var featureFile = Path.Combine(featuresDirPath, $"{featureName}.feature");
+        File.WriteAllText(featureFile, content);
     }
 }

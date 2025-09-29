@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.1.0] - 2025-01-XX
+
+### Changed
+- **BREAKING**: Updated to Reqnroll 3.1.0 (from 3.0.x)
+- Updated project version to 3.1.0 following semantic versioning aligned with Reqnroll
+- Fixed deprecation warnings by updating ScenarioCallTestGenerator constructor to remove obsolete ITestHeaderWriter and ITestUpToDateChecker parameters
+- Made ScenarioCallTestGenerator a concrete class instead of abstract to enable proper dependency injection
+
+### Fixed
+- Fixed nullability warning in test code
+- Fixed test isolation issues by implementing proper disposal pattern in test classes
+
+### Technical Details
+- Updated Reqnroll.CustomPlugin dependency from 3.0.2 to 3.1.0
+- Removed usage of obsolete TestGenerator constructor overload
+- Updated test infrastructure to properly handle Environment.CurrentDirectory changes
+- All builds now complete without warnings
+
+## [Unreleased - Previous]
+
 ### Added
 - **Automatic Release System**: Every commit to main now automatically creates a new release
   - Patch version is automatically incremented (e.g., 3.0.0 → 3.0.1)
@@ -92,12 +112,13 @@ For each release, we document:
 
 This project follows a modified semantic versioning approach aligned with Reqnroll:
 
-- **MAJOR.MINOR**: Matches the Reqnroll version (e.g., 3.0 for Reqnroll 3.0.x)  
+- **MAJOR.MINOR**: Matches the Reqnroll version (e.g., 3.1 for Reqnroll 3.1.x)  
 - **PATCH**: Independently managed for plugin-specific updates and fixes
 
 This ensures compatibility with the corresponding Reqnroll version while allowing independent plugin updates.
 
 ## Links
 
-- [Unreleased]: https://github.com/jgerits/Reqnroll.ScenarioCall.Generator/compare/v3.0.0...HEAD
+- [Unreleased]: https://github.com/jgerits/Reqnroll.ScenarioCall.Generator/compare/v3.1.0...HEAD
+- [3.1.0]: https://github.com/jgerits/Reqnroll.ScenarioCall.Generator/releases/tag/v3.1.0
 - [3.0.0]: https://github.com/jgerits/Reqnroll.ScenarioCall.Generator/releases/tag/v3.0.0
