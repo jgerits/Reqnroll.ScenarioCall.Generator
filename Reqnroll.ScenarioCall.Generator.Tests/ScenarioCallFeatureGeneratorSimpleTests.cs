@@ -15,6 +15,7 @@ public class ScenarioCallFeatureGeneratorSimpleTests
 {
     private readonly Mock<IFeatureGenerator> _mockBaseGenerator;
     private readonly ScenarioCallFeatureGenerator _generator;
+    private string? _testTempDirectory;
 
     public ScenarioCallFeatureGeneratorSimpleTests()
     {
@@ -334,17 +335,19 @@ Scenario: Logout
 
     private void SetupFeatureFileContent(string featureName, string content)
     {
-        // Create a temporary feature file for testing in a safe location
-        var tempDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
-        Directory.CreateDirectory(tempDir);
-        var featuresDir = Path.Combine(tempDir, "Features");
-        Directory.CreateDirectory(featuresDir);
+        // Create or reuse a temporary feature directory for testing
+        if (_testTempDirectory == null)
+        {
+            _testTempDirectory = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+            Directory.CreateDirectory(_testTempDirectory);
+            var featuresDir = Path.Combine(_testTempDirectory, "Features");
+            Directory.CreateDirectory(featuresDir);
+            // Set the current directory to the temp directory so the generator can find the files
+            Environment.CurrentDirectory = _testTempDirectory;
+        }
         
-        var featureFile = Path.Combine(featuresDir, $"{featureName}.feature");
+        var featureFile = Path.Combine(_testTempDirectory, "Features", $"{featureName}.feature");
         File.WriteAllText(featureFile, content);
-
-        // Set the current directory to the temp directory so the generator can find the files
-        Environment.CurrentDirectory = tempDir;
     }
 
     private T CallPrivateMethod<T>(object obj, string methodName, params object[] parameters)
@@ -365,5 +368,212 @@ Scenario: Logout
             throw new ArgumentException($"Static method {methodName} not found");
         }
         return (T)method.Invoke(null, parameters)!;
+    }
+
+    [Fact]
+    public void PreprocessFeatureContent_WithNestedScenarioCalls_PreservesInnerCalls()
+    {
+        // Arrange
+        // Note: The current implementation does not recursively expand nested scenario calls.
+        // This test verifies that behavior - only the outermost call is expanded.
+        var originalContent = @"Feature: Test Feature
+Scenario: Outer Scenario
+    Given I call scenario ""Inner"" from feature ""Helper""
+    When I do something else";
+
+        SetupFeatureFileContent("Helper", @"Feature: Helper
+Scenario: Inner
+    Given I call scenario ""Base"" from feature ""Foundation""
+    When I do inner work");
+
+        SetupFeatureFileContent("Foundation", @"Feature: Foundation
+Scenario: Base
+    Given I have a foundation step
+    When I build on it");
+
+        // Act
+        var result = _generator.PreprocessFeatureContent(originalContent);
+
+        // Assert
+        // The outer scenario call should be expanded
+        Assert.Contains("# Expanded from scenario call: \"Inner\" from feature \"Helper\"", result);
+        // But the inner call is NOT recursively expanded - it's preserved as-is
+        Assert.Contains("Given I call scenario \"Base\" from feature \"Foundation\"", result);
+        Assert.Contains("When I do inner work", result);
+    }
+
+    [Fact]
+    public void PreprocessFeatureContent_WithScenarioCallInBackground_DoesNotExpand()
+    {
+        // Arrange
+        // Note: The current implementation only expands scenario calls within Scenario blocks,
+        // not in Background sections.
+        var originalContent = @"Feature: Test Feature
+Background:
+    Given I call scenario ""Setup"" from feature ""Common""
+
+Scenario: Test Scenario
+    When I do something
+    Then it should work";
+
+        SetupFeatureFileContent("Common", @"Feature: Common
+Scenario: Setup
+    Given the system is initialized
+    And the database is ready");
+
+        // Act
+        var result = _generator.PreprocessFeatureContent(originalContent);
+
+        // Assert
+        // Background scenario calls are not expanded in the current implementation
+        Assert.Contains("Given I call scenario \"Setup\" from feature \"Common\"", result);
+        Assert.DoesNotContain("# Expanded from scenario call", result);
+    }
+
+    [Fact]
+    public void PreprocessFeatureContent_WithMixedCallsAndRegularSteps_MaintainsCorrectOrder()
+    {
+        // Arrange
+        var originalContent = @"Feature: Test Feature
+Scenario: Mixed Steps
+    Given I call scenario ""Login"" from feature ""Auth""
+    And I navigate to dashboard
+    When I call scenario ""LoadData"" from feature ""Data""
+    Then I should see results";
+
+        SetupFeatureFileContent("Auth", @"Feature: Auth
+Scenario: Login
+    Given I enter username
+    When I enter password");
+
+        SetupFeatureFileContent("Data", @"Feature: Data
+Scenario: LoadData
+    Given I load the data
+    When I process it");
+
+        // Act
+        var result = _generator.PreprocessFeatureContent(originalContent);
+
+        // Assert
+        // Verify that both scenario calls are expanded and regular steps are preserved
+        Assert.Contains("# Expanded from scenario call: \"Login\" from feature \"Auth\"", result);
+        Assert.Contains("# Expanded from scenario call: \"LoadData\" from feature \"Data\"", result);
+        Assert.Contains("And I navigate to dashboard", result);
+        Assert.Contains("Then I should see results", result);
+        
+        // Verify the expanded steps are present
+        Assert.Contains("Given I enter username", result);
+        Assert.Contains("When I enter password", result);
+        Assert.Contains("Given I load the data", result);
+        Assert.Contains("When I process it", result);
+    }
+
+    [Fact]
+    public void PreprocessFeatureContent_WithScenarioOutline_DoesNotExpandDueToOutlineKeyword()
+    {
+        // Arrange
+        // Note: The current implementation only recognizes "Scenario:" not "Scenario Outline:"
+        // This test documents that limitation
+        var originalContent = @"Feature: Test Feature
+Scenario Outline: Test with Examples
+    Given I have <value>
+    When I call scenario ""Process"" from feature ""Helper""
+    Then I should get <result>
+
+Examples:
+    | value | result |
+    | 1     | 2      |
+    | 2     | 4      |";
+
+        SetupFeatureFileContent("Helper", @"Feature: Helper
+Scenario: Process
+    Given I process the input
+    When I calculate");
+
+        // Act
+        var result = _generator.PreprocessFeatureContent(originalContent);
+
+        // Assert
+        // Since "Scenario Outline:" is not recognized as a scenario in the current implementation,
+        // the scenario call is NOT expanded
+        Assert.DoesNotContain("# Expanded from scenario call", result);
+        Assert.Contains("Given I have <value>", result);
+        Assert.Contains("Examples:", result);
+    }
+
+    [Fact]
+    public void PreprocessFeatureContent_WithEmptyFeatureFile_HandlesGracefully()
+    {
+        // Arrange
+        var originalContent = @"";
+
+        // Act
+        var result = _generator.PreprocessFeatureContent(originalContent);
+
+        // Assert
+        Assert.Equal(Environment.NewLine, result);
+    }
+
+    [Fact]
+    public void PreprocessFeatureContent_WithOnlyComments_HandlesCorrectly()
+    {
+        // Arrange
+        var originalContent = @"# This is a comment
+# Another comment
+# No actual feature content";
+
+        // Act
+        var result = _generator.PreprocessFeatureContent(originalContent);
+
+        // Assert
+        Assert.Contains("# This is a comment", result);
+        Assert.Contains("# Another comment", result);
+    }
+
+    [Fact]
+    public void FindScenarioSteps_WithScenarioHavingTags_SkipsTags()
+    {
+        // Arrange
+        SetupFeatureFileContent("Tagged", @"Feature: Tagged Feature
+@smoke @regression
+Scenario: Tagged Scenario
+    Given I have a tagged step
+    When I execute it
+    Then it should work");
+
+        var featureContent = File.ReadAllText(Path.Combine(Environment.CurrentDirectory, "Features", "Tagged.feature"));
+
+        // Act
+        var steps = CallPrivateMethod<List<string>>(_generator, "FindScenarioSteps", "Tagged Scenario", "Tagged Feature");
+
+        // Assert
+        Assert.NotNull(steps);
+        Assert.Equal(3, steps.Count);
+        Assert.Contains("Given I have a tagged step", steps);
+        Assert.DoesNotContain("@smoke", string.Join(" ", steps));
+    }
+
+    [Fact]
+    public void PreprocessFeatureContent_WithMultilineScenarioDescription_HandlesCorrectly()
+    {
+        // Arrange
+        var originalContent = @"Feature: Test Feature
+Scenario: Scenario with description
+    This is a description
+    that spans multiple lines
+    
+    Given I call scenario ""Login"" from feature ""Auth""";
+
+        SetupFeatureFileContent("Auth", @"Feature: Auth
+Scenario: Login
+    Given I log in");
+
+        // Act
+        var result = _generator.PreprocessFeatureContent(originalContent);
+
+        // Assert
+        Assert.Contains("This is a description", result);
+        Assert.Contains("that spans multiple lines", result);
+        Assert.Contains("Given I log in", result);
     }
 }
