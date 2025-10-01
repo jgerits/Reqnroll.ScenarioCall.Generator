@@ -41,7 +41,7 @@ A simple demonstration showing the feature file syntax for scenario calling. Thi
 Location: `MSTestExample/`
 
 A complete, production-ready MSTest project demonstrating the plugin in action:
-- Full project configuration using NuGet package
+- Full project configuration using local project reference
 - Feature files with scenario calls
 - Complete step definition implementations
 - MSTest integration
@@ -64,7 +64,7 @@ See [MSTestExample/README.md](MSTestExample/README.md) for detailed setup and us
 
 ## Note on Building
 
-The MSTestExample is configured to use the published NuGet package version 3.0.7. Once this version is published to NuGet.org, the solution will build successfully out of the box. Until then, the example serves as a reference for project structure and configuration.
+The MSTestExample uses a local project reference to ensure it builds successfully. This makes the example fully functional out of the box. When using the plugin in your own projects, you would install it via NuGet instead.
 
 ## Learn More
 

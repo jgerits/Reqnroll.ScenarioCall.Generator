@@ -5,13 +5,13 @@ This example demonstrates how to use the Reqnroll.ScenarioCall.Generator plugin 
 ## Overview
 
 This is a complete, working example that shows:
-- How to install and configure the plugin using NuGet (version 3.0.7)
+- How to configure the plugin using a project reference
 - How to create reusable scenarios in feature files
 - How to call scenarios from other feature files using the scenario call syntax
 - How to implement step definitions for MSTest
 - Best practices for organizing test code
 
-**Note**: This example references the published NuGet package version 3.0.7. Once this version is published to NuGet.org, the example will work out of the box. Until then, you can use this as a reference for project structure and configuration.
+**Note**: This example uses a local project reference to the Reqnroll.ScenarioCall.Generator plugin. This ensures the example is fully functional and can be built and run immediately. When using the plugin in your own projects, you would typically install it via NuGet: `JGerits.Reqnroll.ScenarioCall.Generator`.
 
 ## Project Structure
 
@@ -31,15 +31,25 @@ MSTestExample/
 
 ## Key Features Demonstrated
 
-### 1. NuGet Package Usage
+### 1. Plugin Configuration
 
-This example uses the published NuGet package `JGerits.Reqnroll.ScenarioCall.Generator` version 3.0.7:
+This example uses a local project reference to the plugin:
+
+```xml
+<ProjectReference Include="..\..\Reqnroll.ScenarioCall.Generator\Reqnroll.ScenarioCall.Generator.csproj" />
+```
+
+And explicitly registers the generator plugin:
+
+```xml
+<ReqnrollGeneratorPlugins Include="$(MSBuildProjectDirectory)\..\..\Reqnroll.ScenarioCall.Generator\bin\$(Configuration)\netstandard2.0\Reqnroll.ScenarioCall.Generator.dll" />
+```
+
+**For your own projects**, you would install the NuGet package instead:
 
 ```xml
 <PackageReference Include="JGerits.Reqnroll.ScenarioCall.Generator" Version="3.0.7" />
 ```
-
-The plugin automatically registers itself and processes scenario calls at build time.
 
 ### 2. Reusable Scenarios
 

@@ -47,13 +47,6 @@ public class UserManagementSteps
         _scenarioContext["FormData"] = formData;
     }
 
-    [Then(@"I should see ""(.*)"" message")]
-    public void ThenIShouldSeeMessage(string message)
-    {
-        Console.WriteLine($"Verifying message: {message}");
-        // In a real test, you would verify the message is displayed
-    }
-
     [Then(@"I should see ""(.*)"" in the user list")]
     public void ThenIShouldSeeInTheUserList(string username)
     {
