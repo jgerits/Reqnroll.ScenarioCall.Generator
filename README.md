@@ -31,7 +31,9 @@ But I call scenario "ScenarioName" from feature "FeatureName"
 
 ### Basic Example
 
-See the [examples/BasicUsage](examples/BasicUsage/) folder for a complete working example.
+See the examples folder for complete working examples:
+- [examples/BasicUsage](examples/BasicUsage/) - Feature file examples showing the syntax
+- [examples/MSTestExample](examples/MSTestExample/) - Complete MSTest project example with step definitions
 
 **Authentication.feature**
 ```gherkin
