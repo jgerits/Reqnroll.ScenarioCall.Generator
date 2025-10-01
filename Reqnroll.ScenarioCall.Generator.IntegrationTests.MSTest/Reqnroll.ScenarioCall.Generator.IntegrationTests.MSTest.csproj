@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.11.1" />
+    <PackageReference Include="MSTest.TestAdapter" Version="3.6.3" />
+    <PackageReference Include="MSTest.TestFramework" Version="3.6.3" />
+    <PackageReference Include="Reqnroll" Version="3.1.0" />
+    <PackageReference Include="Reqnroll.MSTest" Version="3.1.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Reqnroll.ScenarioCall.Generator\Reqnroll.ScenarioCall.Generator.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Register the generator plugin for Reqnroll code generation -->
+    <ReqnrollGeneratorPlugins Include="$(MSBuildProjectDirectory)\..\Reqnroll.ScenarioCall.Generator\bin\$(Configuration)\netstandard2.0\Reqnroll.ScenarioCall.Generator.dll" />
+  </ItemGroup>
+
+</Project>

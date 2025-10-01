@@ -36,6 +36,7 @@
     <ItemGroup>
         <None Include="../README.md" Pack="true" PackagePath="\" />
         <None Include="../LICENSE" Pack="true" PackagePath="\" />
+        <None Include="build\JGerits.Reqnroll.ScenarioCall.Generator.targets" Pack="true" PackagePath="build\" />
     </ItemGroup>
 
 </Project>
