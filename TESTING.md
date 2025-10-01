@@ -14,7 +14,7 @@ Unlike the original Reqnroll PR which included both generator and runtime compon
 - **No Context Issues**: All steps share the same ScenarioContext and FeatureContext
 - **Standard Reqnroll**: Uses existing Reqnroll infrastructure
 
-## Test Coverage (46 Tests)
+## Test Coverage (61 Tests)
 
 ### Core Functionality Tests
 
@@ -68,6 +68,10 @@ Unlike the original Reqnroll PR which included both generator and runtime compon
 From the original PR's test suite, we adapted and implemented:
 
 1. **Unit Test Coverage**: All core functionality is covered by comprehensive unit tests (46 tests)
+2. **Integration Test Coverage**: Integration tests verify end-to-end functionality across multiple test frameworks:
+   - xUnit integration tests (5 tests)
+   - MSTest integration tests (5 tests)  
+   - NUnit integration tests (5 tests)
 2. **Edge Case Testing**: Tests for error conditions, empty files, malformed content
 3. **Pattern Recognition**: Thorough testing of the scenario call syntax recognition
 4. **Documentation**: Clear examples and limitations documentation
@@ -82,11 +86,21 @@ The PR included `ScenarioCallServiceTests.cs` which tested a **runtime** scenari
 
 ### Integration Testing
 
-The PR's integration tests (`TestScenarioCalling.feature`, `TestAuthentication.feature`) tested runtime scenario execution. For the generator plugin, integration is demonstrated through:
+The plugin includes comprehensive integration tests that verify end-to-end functionality across multiple test frameworks:
 
-1. **Example Projects**: See `examples/BasicUsage/` for working examples
-2. **Generated Code Inspection**: The plugin's output can be inspected in `*.feature.cs` files
-3. **Build-time Verification**: The build succeeds only if generation works correctly
+1. **xUnit Integration Tests** (`Reqnroll.ScenarioCall.Generator.IntegrationTests`): 5 tests
+2. **MSTest Integration Tests** (`Reqnroll.ScenarioCall.Generator.IntegrationTests.MSTest`): 5 tests
+3. **NUnit Integration Tests** (`Reqnroll.ScenarioCall.Generator.IntegrationTests.NUnit`): 5 tests
+
+These integration tests demonstrate:
+- **Scenario Call Expansion**: Tests verify that scenario calls are properly expanded at build time
+- **Cross-Framework Compatibility**: The plugin works with xUnit, MSTest, and NUnit test frameworks
+- **Generated Code Inspection**: The plugin's output can be inspected in `*.feature.cs` files
+- **Build-time Verification**: The build succeeds only if generation works correctly
+
+The integration tests include:
+- `TestScenarioCalling.feature`: Multiple scenarios testing basic scenario calls, setup with scenario calls, and multiple calls in one test
+- `Authentication.feature`: Provides reusable authentication scenarios that can be called from other features
 
 ## Running the Tests
 
@@ -107,10 +121,16 @@ dotnet test --collect:"XPlat Code Coverage"
 ## Test Results
 
 ```
-Total Tests: 46
-  ✅ Passed: 46
+Total Tests: 61
+  ✅ Passed: 61
   ❌ Failed: 0
   ⏭️ Skipped: 0
+
+Test Breakdown:
+  - Unit Tests: 46
+  - Integration Tests (xUnit): 5
+  - Integration Tests (MSTest): 5
+  - Integration Tests (NUnit): 5
 ```
 
 All tests pass consistently across builds, ensuring the plugin works reliably.
