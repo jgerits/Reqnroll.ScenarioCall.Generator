@@ -41,7 +41,7 @@ A simple demonstration showing the feature file syntax for scenario calling. Thi
 Location: `MSTestExample/`
 
 A complete, production-ready MSTest project demonstrating the plugin in action:
-- Full project configuration using local project reference
+- Full project configuration using NuGet package
 - Feature files with scenario calls
 - Complete step definition implementations
 - MSTest integration
@@ -59,12 +59,12 @@ See [MSTestExample/README.md](MSTestExample/README.md) for detailed setup and us
 1. **Clone or download** this repository
 2. **Open** `Examples.sln` in your preferred IDE
 3. **Explore** the MSTestExample project to see the plugin in action
-4. **Build** the solution to see code generation happen
+4. **Build** the solution to see code generation happen (requires NuGet package version 3.0.8+)
 5. **Run** the tests to verify everything works
 
 ## Note on Building
 
-The MSTestExample uses a local project reference to ensure it builds successfully. This makes the example fully functional out of the box. When using the plugin in your own projects, you would install it via NuGet instead.
+The MSTestExample uses the NuGet package `JGerits.Reqnroll.ScenarioCall.Generator` version 3.0.7. The targets file has been fixed in this PR to properly reference the plugin DLL from the NuGet package. Once version 3.0.8+ is published, the example will build successfully out of the box.
 
 ## Learn More
 
