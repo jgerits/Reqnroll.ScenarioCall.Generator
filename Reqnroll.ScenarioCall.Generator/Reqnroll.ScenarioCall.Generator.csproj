@@ -5,9 +5,9 @@
         <LangVersion>latest</LangVersion>
         
         <!-- Version Information -->
-        <Version>3.0.7</Version>
-        <AssemblyVersion>3.0.7</AssemblyVersion>
-        <FileVersion>3.0.7</FileVersion>
+        <Version>3.0.8</Version>
+        <AssemblyVersion>3.0.8</AssemblyVersion>
+        <FileVersion>3.0.8</FileVersion>
         
         <!-- Package Metadata -->
         <PackageId>JGerits.Reqnroll.ScenarioCall.Generator</PackageId>
