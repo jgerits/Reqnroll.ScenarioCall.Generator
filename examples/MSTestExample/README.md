@@ -86,6 +86,23 @@ When you build the project, the plugin automatically expands scenario calls inli
 
 ## Getting Started
 
+### Option 1: Using the Examples Solution
+
+Open the `Examples.sln` file in the parent examples folder:
+
+```bash
+cd ..
+start Examples.sln  # Windows
+# or
+open Examples.sln   # macOS
+# or
+code Examples.sln   # VS Code
+```
+
+This solution includes the MSTestExample project and makes it easy to explore and run the example.
+
+### Option 2: Using the Project Directly
+
 ### 1. Install Dependencies
 
 The project file already contains all required dependencies. Simply restore packages:
