@@ -7,6 +7,8 @@ permissions:
 'on':
   push:
     branches: [main, master]
+    paths-ignore:
+      - 'examples/**'
   pull_request:
     branches: [main, master]
   release:
