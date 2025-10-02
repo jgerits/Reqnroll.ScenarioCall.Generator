@@ -5,5 +5,10 @@
   },
   "bindingCulture": {
     "name": "en-US"
-  }
+  },
+  "stepAssemblies": [
+    {
+      "assembly": "SharedAuthLibrary"
+    }
+  ]
 }

@@ -30,12 +30,8 @@ public class ProductReviewSteps
         _scenarioContext["CurrentProduct"] = productName;
     }
 
-    [When(@"I click ""(.*)"" button")]
-    public void WhenIClickButton(string buttonText)
-    {
-        Console.WriteLine($"Clicking button: {buttonText}");
-        _scenarioContext["LastButtonClicked"] = buttonText;
-    }
+    // Note: "I click button" step is provided by OrderManagementSteps
+    // No need to duplicate it here
 
     [When(@"I enter review title ""(.*)""")]
     public void WhenIEnterReviewTitle(string title)
@@ -75,12 +71,8 @@ public class ProductReviewSteps
         }
     }
 
-    [Then(@"I should see ""(.*)"" message")]
-    public void ThenIShouldSeeMessage(string message)
-    {
-        Console.WriteLine($"Verifying message: {message}");
-        // In a real test, you would verify the message is displayed
-    }
+    // Note: "I should see message" step is provided by SharedAuthLibrary
+    // No need to duplicate it here
 
     [Then(@"my review should appear on the product page")]
     public void ThenMyReviewShouldAppearOnTheProductPage()
@@ -98,23 +90,9 @@ public class ProductReviewSteps
         }
     }
 
-    [When(@"I navigate to my account page")]
-    public void WhenINavigateToMyAccountPage()
-    {
-        Console.WriteLine("Navigating to account page");
-        if (!_scenarioContext.ContainsKey("LoggedIn") || !(bool)_scenarioContext["LoggedIn"])
-        {
-            throw new Exception("User must be logged in to view account");
-        }
-        _scenarioContext["OnAccountPage"] = true;
-    }
-
-    [When(@"I click on ""(.*)""")]
-    public void WhenIClickOn(string linkOrButton)
-    {
-        Console.WriteLine($"Clicking on: {linkOrButton}");
-        _scenarioContext["LastClick"] = linkOrButton;
-    }
+    // Note: "I navigate to my account page" step is provided by OrderManagementSteps
+    // Note: "I click on" step is provided by OrderManagementSteps
+    // No need to duplicate them here
 
     [When(@"I select review for product ""(.*)""")]
     public void WhenISelectReviewForProduct(string productName)

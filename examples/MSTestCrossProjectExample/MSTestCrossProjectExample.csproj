@@ -9,32 +9,48 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="JGerits.Reqnroll.ScenarioCall.Generator" Version="3.0.7" />
+    <!-- 
+      In this example, we use a project reference to the local build of the generator plugin.
+      In a real project, you would use the NuGet package:
+      <PackageReference Include="JGerits.Reqnroll.ScenarioCall.Generator" Version="3.0.8" />
+    -->
+    <ProjectReference Include="..\..\Reqnroll.ScenarioCall.Generator\Reqnroll.ScenarioCall.Generator.csproj">
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+    </ProjectReference>
+    
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.11.1" />
     <PackageReference Include="MSTest.TestAdapter" Version="3.6.3" />
     <PackageReference Include="MSTest.TestFramework" Version="3.6.3" />
     <PackageReference Include="Reqnroll" Version="3.1.0" />
     <PackageReference Include="Reqnroll.MSTest" Version="3.1.0" />
   </ItemGroup>
-
+  
   <ItemGroup>
-    <!-- Reference the shared authentication library -->
-    <ProjectReference Include="..\SharedAuthLibrary\SharedAuthLibrary.csproj" />
+    <!-- Register the generator plugin for Reqnroll code generation -->
+    <ReqnrollGeneratorPlugins Include="..\..\Reqnroll.ScenarioCall.Generator\bin\$(Configuration)\netstandard2.0\Reqnroll.ScenarioCall.Generator.dll" />
   </ItemGroup>
 
   <ItemGroup>
     <!-- 
-      Copy SharedAuthLibrary feature files to this project's Features directory.
-      This is REQUIRED for the ScenarioCall.Generator to find and expand scenarios
-      from the referenced project.
-      
-      The <Link> element creates a logical "SharedAuth" folder in the project view
-      without physically moving the files from SharedAuthLibrary.
+      Reference the shared authentication library.
+      This makes the step definitions from SharedAuthLibrary available at runtime.
     -->
-    <None Include="..\SharedAuthLibrary\Features\*.feature">
-      <Link>Features\SharedAuth\%(Filename)%(Extension)</Link>
+    <ProjectReference Include="..\SharedAuthLibrary\SharedAuthLibrary.csproj">
+      <ReferenceOutputAssembly>true</ReferenceOutputAssembly>
+    </ProjectReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- 
+      Exclude SharedAuth feature files from being treated as test features.
+      These are included only for reference by the ScenarioCall.Generator,
+      not to generate additional tests in this project.
+    -->
+    <None Include="Features\SharedAuth\*.feature">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <Visible>true</Visible>
     </None>
+    <Compile Remove="Features\SharedAuth\*.feature.cs" />
   </ItemGroup>
 
 </Project>

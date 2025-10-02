@@ -92,6 +92,21 @@ public class OrderManagementSteps
         Console.WriteLine($"Clicking on: {linkOrButton}");
         _scenarioContext["LastClick"] = linkOrButton;
     }
+    
+    [When(@"I click ""(.*)"" button")]
+    public void WhenIClickButton(string buttonText)
+    {
+        Console.WriteLine($"Clicking button: {buttonText}");
+        
+        if (buttonText == "Cancel Order")
+        {
+            var orderId = _scenarioContext["SelectedOrderId"] as string;
+            if (orderId != null && _orders.ContainsKey(orderId))
+            {
+                _orders[orderId] = "Cancelled";
+            }
+        }
+    }
 
     [Then(@"I should see a list of my previous orders")]
     public void ThenIShouldSeeAListOfMyPreviousOrders()
@@ -114,27 +129,10 @@ public class OrderManagementSteps
         _scenarioContext["SelectedOrderId"] = orderId;
     }
 
-    [When(@"I click ""(.*)"" button")]
-    public void WhenIClickButton(string buttonText)
-    {
-        Console.WriteLine($"Clicking button: {buttonText}");
-        
-        if (buttonText == "Cancel Order")
-        {
-            var orderId = _scenarioContext["SelectedOrderId"] as string;
-            if (orderId != null && _orders.ContainsKey(orderId))
-            {
-                _orders[orderId] = "Cancelled";
-            }
-        }
-    }
-
-    [Then(@"I should see ""(.*)"" message")]
-    public void ThenIShouldSeeMessage(string message)
-    {
-        Console.WriteLine($"Verifying message: {message}");
-        // In a real test, you would verify the message is displayed
-    }
+    // Note: "I should see message" step is provided by SharedAuthLibrary
+    // No need to duplicate it here
+    
+    // Note: "I click button" step is shared - defined above in this class
 
     [Then(@"order ""(.*)"" should have status ""(.*)""")]
     public void ThenOrderShouldHaveStatus(string orderId, string expectedStatus)
