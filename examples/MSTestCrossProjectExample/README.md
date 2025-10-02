@@ -48,9 +48,11 @@ The `.csproj` file includes a project reference to SharedAuthLibrary:
 - Allows dependency injection to work across projects
 - Enables compilation and build order management
 
-### Step 2: Copy Feature Files
+### Step 2: Make Feature Files Available
 
-The **critical configuration** that enables cross-project scenario calling is copying the feature files:
+The **critical configuration** that enables cross-project scenario calling is making the feature files available to the generator. There are two approaches:
+
+#### Option A: Physical Copy (Recommended for simplicity)
 
 ```xml
 <ItemGroup>
@@ -66,20 +68,51 @@ The **critical configuration** that enables cross-project scenario calling is co
 </ItemGroup>
 ```
 
+In this example, we **physically copied** the feature file from SharedAuthLibrary:
+```bash
+# From MSTestCrossProjectExample directory
+mkdir -p Features/SharedAuth
+cp ../SharedAuthLibrary/Features/SharedAuthentication.feature Features/SharedAuth/
+```
+
+Then exclude it from code generation:
+```xml
+<ItemGroup>
+  <None Include="Features\SharedAuth\*.feature">
+    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+  </None>
+  <Compile Remove="Features\SharedAuth\*.feature.cs" />
+</ItemGroup>
+```
+
+#### Option B: MSBuild Link (For keeping files synchronized)
+
+Alternatively, you can use MSBuild to include the files without physically copying:
+
+```xml
+<ItemGroup>
+  <None Include="..\SharedAuthLibrary\Features\*.feature">
+    <Link>Features\SharedAuth\%(Filename)%(Extension)</Link>
+    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+  </None>
+  <Compile Remove="Features\SharedAuth\*.feature.cs" />
+</ItemGroup>
+```
+
 **Why is this needed?**
 
-The Reqnroll.ScenarioCall.Generator plugin searches for feature files in the current project's directory structure during build-time code generation. By copying the feature files from SharedAuthLibrary:
+The Reqnroll.ScenarioCall.Generator plugin searches for feature files in the current project's directory structure during build-time code generation. By making the feature files available:
 
 1. **Discovery**: The generator can find the feature files to read scenario definitions
 2. **Expansion**: Scenario calls are expanded inline during code generation
 3. **Build-time Processing**: No runtime dependencies on external feature files
-4. **Logical Structure**: The `<Link>` element creates a "SharedAuth" folder in the project view without physically moving files
+4. **No Test Duplication**: We exclude `.feature.cs` generation for copied files to avoid running the same tests twice
 
 **Important Notes:**
-- The feature files are NOT physically moved from SharedAuthLibrary
-- The `<Link>` element creates a logical folder structure in Visual Studio/IDE
-- `CopyToOutputDirectory` ensures files are available during build
-- You can copy feature files from multiple projects using multiple `<None Include>` elements
+- Option A (physical copy) is simpler but requires manual sync when SharedAuthLibrary features change
+- Option B (MSBuild link) keeps files synchronized automatically but may have platform compatibility issues
+- The `<Compile Remove>` prevents generating duplicate test methods for the copied feature files
+- You can include feature files from multiple projects using multiple `<None Include>` elements
 
 ### Step 3: Call Scenarios from Other Projects
 

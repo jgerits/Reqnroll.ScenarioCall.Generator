@@ -90,12 +90,19 @@ See [MSTestCrossProjectExample/README.md](MSTestCrossProjectExample/README.md) f
 3. **Explore** the examples:
    - Start with **MSTestExample** for basic scenario calling within a single project
    - Then explore **MSTestCrossProjectExample** and **SharedAuthLibrary** to see cross-project scenario reuse
-4. **Build** the solution to see code generation happen (requires NuGet package version 3.0.8+)
+4. **Build** the solution to see code generation happen
 5. **Run** the tests to verify everything works
 
-## Note on Building
+### Note on Development Setup
 
-The MSTestExample uses the NuGet package `JGerits.Reqnroll.ScenarioCall.Generator` version 3.0.7. The targets file has been fixed in this PR to properly reference the plugin DLL from the NuGet package. Once version 3.0.8+ is published, the example will build successfully out of the box.
+The example projects in this repository use a **project reference** to the local build of the Reqnroll.ScenarioCall.Generator plugin instead of the NuGet package. This allows the examples to always use the latest code during development.
+
+In your own projects, you should use the NuGet package instead:
+```xml
+<PackageReference Include="JGerits.Reqnroll.ScenarioCall.Generator" Version="3.0.8" />
+```
+
+
 
 ## Learn More
 
