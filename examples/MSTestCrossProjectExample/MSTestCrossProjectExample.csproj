@@ -30,4 +30,27 @@
     <ReqnrollGeneratorPlugins Include="..\..\Reqnroll.ScenarioCall.Generator\bin\$(Configuration)\netstandard2.0\Reqnroll.ScenarioCall.Generator.dll" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- 
+      Reference the shared authentication library.
+      This makes the step definitions from SharedAuthLibrary available at runtime.
+    -->
+    <ProjectReference Include="..\SharedAuthLibrary\SharedAuthLibrary.csproj">
+      <ReferenceOutputAssembly>true</ReferenceOutputAssembly>
+    </ProjectReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- 
+      Exclude SharedAuth feature files from being treated as test features.
+      These are included only for reference by the ScenarioCall.Generator,
+      not to generate additional tests in this project.
+    -->
+    <None Include="Features\SharedAuth\*.feature">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <Visible>true</Visible>
+    </None>
+    <Compile Remove="Features\SharedAuth\*.feature.cs" />
+  </ItemGroup>
+
 </Project>
