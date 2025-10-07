@@ -14,9 +14,7 @@
       In a real project, you would use the NuGet package:
       <PackageReference Include="JGerits.Reqnroll.ScenarioCall.Generator" Version="3.0.8" />
     -->
-    <ProjectReference Include="..\..\Reqnroll.ScenarioCall.Generator\Reqnroll.ScenarioCall.Generator.csproj">
-      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
-    </ProjectReference>
+    <PackageReference Include="JGerits.Reqnroll.ScenarioCall.Generator" Version="3.0.8" />
     
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.11.1" />
     <PackageReference Include="MSTest.TestAdapter" Version="3.6.3" />
@@ -24,21 +22,7 @@
     <PackageReference Include="Reqnroll" Version="3.1.0" />
     <PackageReference Include="Reqnroll.MSTest" Version="3.1.0" />
   </ItemGroup>
-  
-  <ItemGroup>
-    <!-- Register the generator plugin for Reqnroll code generation -->
-    <ReqnrollGeneratorPlugins Include="..\..\Reqnroll.ScenarioCall.Generator\bin\$(Configuration)\netstandard2.0\Reqnroll.ScenarioCall.Generator.dll" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <!-- 
-      Reference the shared authentication library.
-      This makes the step definitions from SharedAuthLibrary available at runtime.
-    -->
-    <ProjectReference Include="..\SharedAuthLibrary\SharedAuthLibrary.csproj">
-      <ReferenceOutputAssembly>true</ReferenceOutputAssembly>
-    </ProjectReference>
-  </ItemGroup>
+    
 
   <ItemGroup>
     <!-- 
@@ -51,6 +35,12 @@
       <Visible>true</Visible>
     </None>
     <Compile Remove="Features\SharedAuth\*.feature.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="..\..\Reqnroll.ScenarioCall.Generator\bin\Debug\netstandard2.0\">
+      <Link>netstandard2.0</Link>
+    </Folder>
   </ItemGroup>
 
 </Project>
