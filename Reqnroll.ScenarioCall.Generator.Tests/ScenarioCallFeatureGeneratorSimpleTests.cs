@@ -11,6 +11,7 @@ using Xunit;
 
 namespace Reqnroll.ScenarioCall.Generator.Tests;
 
+[Collection("Sequential")]
 public class ScenarioCallFeatureGeneratorSimpleTests
 {
     private readonly Mock<IFeatureGenerator> _mockBaseGenerator;
@@ -588,4 +589,10 @@ Scenario: Login
         Assert.Contains("that spans multiple lines", result);
         Assert.Contains("Given I log in", result);
     }
+}
+
+// Collection definition to disable parallel execution for tests that modify Environment.CurrentDirectory
+[CollectionDefinition("Sequential", DisableParallelization = true)]
+public class SequentialCollection
+{
 }
