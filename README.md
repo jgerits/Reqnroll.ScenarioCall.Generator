@@ -174,6 +174,29 @@ Scenario: Complete Login Flow
 
 The plugin supports all Gherkin languages that Reqnroll supports. Specify the language using the `# language:` directive at the top of your feature file.
 
+**Dutch Example (AuthenticatieNL.feature)**
+```gherkin
+# language: nl
+Functionaliteit: Authenticatie
+
+Scenario: Inloggen met geldige inloggegevens
+    Gegeven ik ben op de inlogpagina
+    Als ik gebruikersnaam "john.doe@example.com" invoer
+    En ik wachtwoord "SecurePassword123" invoer
+    Dan zou ik ingelogd moeten zijn
+```
+
+**Using Dutch scenarios in your feature files:**
+```gherkin
+# language: nl
+Functionaliteit: Gebruikersbeheer
+
+Scenario: Nieuw gebruikersaccount aanmaken
+    Gegeven I call scenario "Inloggen met geldige inloggegevens" from feature "Authenticatie"
+    Als ik naar het gebruikersbeheersectie navigeer
+    Dan zou ik de gebruikerslijst moeten zien
+```
+
 **German Example (AuthentifizierungDE.feature)**
 ```gherkin
 # language: de
@@ -197,7 +220,7 @@ Szenario: Neues Benutzerkonto erstellen
     Dann sollte ich die Benutzerliste sehen
 ```
 
-**Supported Languages**: English (en), German (de), French (fr), Spanish (es), Dutch (nl), and many more. See [Gherkin language reference](https://cucumber.io/docs/gherkin/languages/) for a complete list.
+**Supported Languages**: English (en), Dutch (nl), German (de), French (fr), Spanish (es), and many more. See [Gherkin language reference](https://cucumber.io/docs/gherkin/languages/) for a complete list.
 
 **Mixed Language Support**: You can call scenarios from feature files written in different languages. The plugin automatically detects the language of each feature file.
 
