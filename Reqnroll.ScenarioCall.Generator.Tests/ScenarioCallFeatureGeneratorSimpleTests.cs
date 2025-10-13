@@ -352,21 +352,33 @@ Scenario: Logout
 
     private T CallPrivateMethod<T>(object obj, string methodName, params object[] parameters)
     {
-        var method = obj.GetType().GetMethod(methodName, System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+        var methods = obj.GetType().GetMethods(System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
+            .Where(m => m.Name == methodName);
+        
+        // Try to find a method that matches the parameter count
+        var method = methods.FirstOrDefault(m => m.GetParameters().Length == parameters.Length);
+        
         if (method == null)
         {
-            throw new ArgumentException($"Method {methodName} not found");
+            throw new ArgumentException($"Method {methodName} with {parameters.Length} parameters not found");
         }
+        
         return (T)method.Invoke(obj, parameters)!;
     }
 
     private T CallPrivateStaticMethod<T>(Type type, string methodName, params object[] parameters)
     {
-        var method = type.GetMethod(methodName, System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static);
+        var methods = type.GetMethods(System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)
+            .Where(m => m.Name == methodName);
+            
+        // Try to find a method that matches the parameter count
+        var method = methods.FirstOrDefault(m => m.GetParameters().Length == parameters.Length);
+        
         if (method == null)
         {
-            throw new ArgumentException($"Static method {methodName} not found");
+            throw new ArgumentException($"Static method {methodName} with {parameters.Length} parameters not found");
         }
+        
         return (T)method.Invoke(null, parameters)!;
     }
 
@@ -472,8 +484,8 @@ Scenario: LoadData
     public void PreprocessFeatureContent_WithScenarioOutline_DoesNotExpandDueToOutlineKeyword()
     {
         // Arrange
-        // Note: The current implementation only recognizes "Scenario:" not "Scenario Outline:"
-        // This test documents that limitation
+        // With the multi-language support, we now support "Scenario Outline:" as well
+        // since it's in the Gherkin dialect as a scenario keyword variant
         var originalContent = @"Feature: Test Feature
 Scenario Outline: Test with Examples
     Given I have <value>
@@ -494,9 +506,9 @@ Scenario: Process
         var result = _generator.PreprocessFeatureContent(originalContent);
 
         // Assert
-        // Since "Scenario Outline:" is not recognized as a scenario in the current implementation,
-        // the scenario call is NOT expanded
-        Assert.DoesNotContain("# Expanded from scenario call", result);
+        // Now with dialect-aware parsing, "Scenario Outline:" IS recognized as a scenario variant
+        // because "Scenario Outline" starts with "Scenario" which is in the ScenarioKeywords
+        Assert.Contains("# Expanded from scenario call", result);
         Assert.Contains("Given I have <value>", result);
         Assert.Contains("Examples:", result);
     }
