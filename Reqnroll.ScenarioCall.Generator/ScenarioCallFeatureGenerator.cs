@@ -77,6 +77,31 @@ public class ScenarioCallFeatureGenerator : IFeatureGenerator
     {
         var dialect = GetDialect(originalContent);
         var lines = originalContent.Split('\n');
+
+        // Fast path: if there are no scenario-call steps within Scenario blocks,
+        // return the original content unchanged and just add a trailing newline.
+        // This preserves the original line endings used in the content.
+        var hasScenarioCall = false;
+        var scanInScenario = false;
+        foreach (var l in lines)
+        {
+            var t = l.Trim();
+            if (StartsWithAnyKeyword(t, dialect.ScenarioKeywords))
+            {
+                scanInScenario = true;
+            }
+            else if (scanInScenario && IsScenarioCallStep(t, dialect))
+            {
+                hasScenarioCall = true;
+                break;
+            }
+        }
+
+        if (!hasScenarioCall)
+        {
+            return originalContent + Environment.NewLine;
+        }
+
         var result = new StringBuilder();
         var inScenario = false;
         var currentFeatureName = ExtractFeatureNameFromContent(originalContent, dialect);
