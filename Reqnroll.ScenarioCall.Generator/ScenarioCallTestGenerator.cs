@@ -11,12 +11,14 @@ using Reqnroll.Generator.Configuration;
 using Reqnroll.Generator.Interfaces;
 using Reqnroll.Generator.UnitTestConverter;
 using Reqnroll.Parser;
+using Gherkin;
 
 namespace Reqnroll.ScenarioCall.Generator;
 
 public class ScenarioCallTestGenerator : TestGenerator
 {
     private readonly Dictionary<string, string> _featureFileCache = new();
+    private readonly Dictionary<string, GherkinDialect> _dialectCache = new();
 
     public ScenarioCallTestGenerator(
         ReqnrollConfiguration reqnrollConfiguration,
@@ -39,35 +41,87 @@ public class ScenarioCallTestGenerator : TestGenerator
         return parser.Parse(expandedReader, documentLocation);
     }
 
+    private GherkinDialect GetDialect(string content)
+    {
+        var language = DetectLanguage(content);
+        
+        if (!_dialectCache.TryGetValue(language, out var dialect))
+        {
+            var dialectProvider = new GherkinDialectProvider(language);
+            dialect = dialectProvider.DefaultDialect;
+            _dialectCache[language] = dialect;
+        }
+        
+        return dialect;
+    }
+
+    private static string DetectLanguage(string content)
+    {
+        // Check for # language: directive in the first few lines
+        var lines = content.Split('\n');
+        foreach (var line in lines.Take(10))
+        {
+            var trimmed = line.Trim();
+            if (trimmed.StartsWith("#") && trimmed.Contains("language:"))
+            {
+                var match = Regex.Match(trimmed, @"#\s*language:\s*([a-z]{2}(-[A-Z]{2})?)", RegexOptions.IgnoreCase);
+                if (match.Success)
+                {
+                    return match.Groups[1].Value;
+                }
+            }
+            // Stop at first non-comment, non-blank line
+            if (!string.IsNullOrWhiteSpace(trimmed) && !trimmed.StartsWith("#"))
+            {
+                break;
+            }
+        }
+        
+        return "en"; // Default to English
+    }
+
+    private bool StartsWithAnyKeyword(string line, IEnumerable<string> keywords)
+    {
+        foreach (var keyword in keywords)
+        {
+            if (line.StartsWith(keyword))
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
     private string PreprocessFeatureContent(string originalContent)
     {
+        var dialect = GetDialect(originalContent);
         var lines = originalContent.Split('\n');
         var result = new StringBuilder();
         var inScenario = false;
-        var currentFeatureName = (from line in lines select line.Trim() into trimmedLine 
-            where trimmedLine.StartsWith("Feature:") select trimmedLine.Substring("Feature:".Length).Trim()).FirstOrDefault();
+        var currentFeatureName = ExtractFeatureNameFromContent(originalContent, dialect);
 
         foreach (var line in lines)
         {
             var trimmedLine = line.Trim();
                 
-            if (trimmedLine.StartsWith("Scenario:"))
+            if (StartsWithAnyKeyword(trimmedLine, dialect.ScenarioKeywords))
             {
                 inScenario = true;
                 result.AppendLine(line);
                 continue;
             }
                 
-            if (trimmedLine.StartsWith("Feature:") || trimmedLine.StartsWith("Background:"))
+            if (StartsWithAnyKeyword(trimmedLine, dialect.FeatureKeywords) || 
+                StartsWithAnyKeyword(trimmedLine, dialect.BackgroundKeywords))
             {
                 inScenario = false;
                 result.AppendLine(line);
                 continue;
             }
                 
-            if (inScenario && IsScenarioCallStep(trimmedLine))
+            if (inScenario && IsScenarioCallStep(trimmedLine, dialect))
             {
-                var expandedSteps = ExpandScenarioCall(line, currentFeatureName);
+                var expandedSteps = ExpandScenarioCall(line, currentFeatureName, dialect);
                 if (expandedSteps != null)
                 {
                     result.Append(expandedSteps);
@@ -86,14 +140,55 @@ public class ScenarioCallTestGenerator : TestGenerator
         return result.ToString();
     }
 
-    private bool IsScenarioCallStep(string stepText)
+    private bool IsScenarioCallStep(string stepText, GherkinDialect dialect)
     {
-        return Regex.IsMatch(stepText, @"(Given|When|Then|And|But)\s+I call scenario ""([^""]+)"" from feature ""([^""]+)""", RegexOptions.IgnoreCase);
+        // Build a pattern that matches any step keyword in the current dialect
+        var allStepKeywords = dialect.GivenStepKeywords
+            .Concat(dialect.WhenStepKeywords)
+            .Concat(dialect.ThenStepKeywords)
+            .Concat(dialect.AndStepKeywords)
+            .Concat(dialect.ButStepKeywords)
+            .Where(k => k != "* ")
+            .Select(k => k.Trim())
+            .Distinct();
+        
+        var keywordPattern = string.Join("|", allStepKeywords.Select(Regex.Escape));
+        
+        // Support English "I call scenario" pattern and also a more generic pattern
+        // that works across languages: step keyword + "call scenario" or dialect-specific translations
+        var patterns = new[]
+        {
+            $@"({keywordPattern})\s+I call scenario ""([^""]+)"" from feature ""([^""]+)""",
+            // Add more language-specific patterns as needed
+        };
+        
+        foreach (var pattern in patterns)
+        {
+            if (Regex.IsMatch(stepText, pattern, RegexOptions.IgnoreCase))
+            {
+                return true;
+            }
+        }
+        
+        return false;
     }
 
-    private string ExpandScenarioCall(string callStepLine, string currentFeatureName)
+    private string ExpandScenarioCall(string callStepLine, string currentFeatureName, GherkinDialect dialect)
     {
-        var match = Regex.Match(callStepLine, @"(Given|When|Then|And|But)\s+I call scenario ""([^""]+)"" from feature ""([^""]+)""", RegexOptions.IgnoreCase);
+        // Build a pattern that matches any step keyword in the current dialect
+        var allStepKeywords = dialect.GivenStepKeywords
+            .Concat(dialect.WhenStepKeywords)
+            .Concat(dialect.ThenStepKeywords)
+            .Concat(dialect.AndStepKeywords)
+            .Concat(dialect.ButStepKeywords)
+            .Where(k => k != "* ")
+            .Select(k => k.Trim())
+            .Distinct();
+        
+        var keywordPattern = string.Join("|", allStepKeywords.Select(Regex.Escape));
+        var pattern = $@"({keywordPattern})\s+I call scenario ""([^""]+)"" from feature ""([^""]+)""";
+        
+        var match = Regex.Match(callStepLine, pattern, RegexOptions.IgnoreCase);
         if (!match.Success) return null;
 
         var scenarioName = match.Groups[2].Value;
@@ -129,6 +224,7 @@ public class ScenarioCallTestGenerator : TestGenerator
         var featureContent = FindFeatureFileContent(featureName);
         if (featureContent == null) return null;
 
+        var dialect = GetDialect(featureContent);
         var lines = featureContent.Split('\n');
         var steps = new List<string>();
         var inTargetScenario = false;
@@ -138,28 +234,29 @@ public class ScenarioCallTestGenerator : TestGenerator
         {
             var trimmedLine = line.Trim();
 
-            if (trimmedLine.StartsWith("Feature:"))
+            if (StartsWithAnyKeyword(trimmedLine, dialect.FeatureKeywords))
             {
-                var currentFeatureName = trimmedLine.Substring("Feature:".Length).Trim();
+                var currentFeatureName = ExtractFeatureNameFromLine(trimmedLine, dialect.FeatureKeywords);
                 foundFeature = string.Equals(currentFeatureName, featureName, StringComparison.OrdinalIgnoreCase);
                 continue;
             }
 
             if (!foundFeature) continue;
 
-            if (trimmedLine.StartsWith("Scenario:"))
+            if (StartsWithAnyKeyword(trimmedLine, dialect.ScenarioKeywords))
             {
-                var currentScenarioName = trimmedLine.Substring("Scenario:".Length).Trim();
+                var currentScenarioName = ExtractScenarioNameFromLine(trimmedLine, dialect.ScenarioKeywords);
                 inTargetScenario = string.Equals(currentScenarioName, scenarioName, StringComparison.OrdinalIgnoreCase);
                 continue;
             }
 
-            if (inTargetScenario && (trimmedLine.StartsWith("Scenario:") || trimmedLine.StartsWith("Feature:")))
+            if (inTargetScenario && (StartsWithAnyKeyword(trimmedLine, dialect.ScenarioKeywords) || 
+                                     StartsWithAnyKeyword(trimmedLine, dialect.FeatureKeywords)))
             {
                 break;
             }
 
-            if (inTargetScenario && IsStepLine(trimmedLine))
+            if (inTargetScenario && IsStepLine(trimmedLine, dialect))
             {
                 steps.Add(trimmedLine);
             }
@@ -168,13 +265,37 @@ public class ScenarioCallTestGenerator : TestGenerator
         return steps.Any() ? steps : null;
     }
 
-    private bool IsStepLine(string line)
+    private string ExtractFeatureNameFromLine(string line, IEnumerable<string> featureKeywords)
     {
-        return line.StartsWith("Given ") || 
-               line.StartsWith("When ") || 
-               line.StartsWith("Then ") || 
-               line.StartsWith("And ") || 
-               line.StartsWith("But ");
+        foreach (var keyword in featureKeywords)
+        {
+            if (line.StartsWith(keyword))
+            {
+                return line.Substring(keyword.Length).Trim().TrimStart(':').Trim();
+            }
+        }
+        return null;
+    }
+
+    private string ExtractScenarioNameFromLine(string line, IEnumerable<string> scenarioKeywords)
+    {
+        foreach (var keyword in scenarioKeywords)
+        {
+            if (line.StartsWith(keyword))
+            {
+                return line.Substring(keyword.Length).Trim().TrimStart(':').Trim();
+            }
+        }
+        return null;
+    }
+
+    private bool IsStepLine(string line, GherkinDialect dialect)
+    {
+        return StartsWithAnyKeyword(line, dialect.GivenStepKeywords) ||
+               StartsWithAnyKeyword(line, dialect.WhenStepKeywords) ||
+               StartsWithAnyKeyword(line, dialect.ThenStepKeywords) ||
+               StartsWithAnyKeyword(line, dialect.AndStepKeywords) ||
+               StartsWithAnyKeyword(line, dialect.ButStepKeywords);
     }
 
     private string FindFeatureFileContent(string featureName)
@@ -192,7 +313,9 @@ public class ScenarioCallTestGenerator : TestGenerator
             try
             {
                 var content = File.ReadAllText(featureFile);
-                var extractedFeatureName = ExtractFeatureNameFromContent(content);
+                // Try with language-aware extraction
+                var dialect = GetDialect(content);
+                var extractedFeatureName = ExtractFeatureNameFromContent(content, dialect);
                     
                 if (extractedFeatureName != null)
                 {
@@ -212,11 +335,18 @@ public class ScenarioCallTestGenerator : TestGenerator
         return null;
     }
 
-    private string ExtractFeatureNameFromContent(string content)
+    private string ExtractFeatureNameFromContent(string content, GherkinDialect dialect)
     {
         var lines = content.Split('\n');
-        return (from line in lines select line.Trim() into trimmedLine where trimmedLine.StartsWith("Feature:") 
-            select trimmedLine.Substring("Feature:".Length).Trim()).FirstOrDefault();
+        foreach (var line in lines)
+        {
+            var trimmedLine = line.Trim();
+            if (StartsWithAnyKeyword(trimmedLine, dialect.FeatureKeywords))
+            {
+                return ExtractFeatureNameFromLine(trimmedLine, dialect.FeatureKeywords);
+            }
+        }
+        return null;
     }
 
     private IEnumerable<string> GetFeatureFilePaths(string baseDirectory)

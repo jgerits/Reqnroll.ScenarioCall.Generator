@@ -15,6 +15,7 @@ A powerful Reqnroll generator plugin that enables calling and embedding scenario
 - 🏗️ **Build-Time Processing**: No runtime overhead - scenarios are expanded at build time
 - 🛡️ **Error Handling**: Graceful handling of missing scenarios with clear warnings
 - 📁 **Flexible File Discovery**: Automatically searches common feature file locations
+- 🌍 **Multi-Language Support**: Supports all Gherkin languages (English, German, French, Spanish, Dutch, and more)
 
 ## Quick Start
 
@@ -168,6 +169,60 @@ Scenario: Complete Login Flow
 - Feature names are case-insensitive
 - Scenario names are case-insensitive
 - File discovery is case-insensitive
+
+### Multi-Language Support
+
+The plugin supports all Gherkin languages that Reqnroll supports. Specify the language using the `# language:` directive at the top of your feature file.
+
+**Dutch Example (AuthenticatieNL.feature)**
+```gherkin
+# language: nl
+Functionaliteit: Authenticatie
+
+Scenario: Inloggen met geldige inloggegevens
+    Gegeven ik ben op de inlogpagina
+    Als ik gebruikersnaam "john.doe@example.com" invoer
+    En ik wachtwoord "SecurePassword123" invoer
+    Dan zou ik ingelogd moeten zijn
+```
+
+**Using Dutch scenarios in your feature files:**
+```gherkin
+# language: nl
+Functionaliteit: Gebruikersbeheer
+
+Scenario: Nieuw gebruikersaccount aanmaken
+    Gegeven I call scenario "Inloggen met geldige inloggegevens" from feature "Authenticatie"
+    Als ik naar het gebruikersbeheersectie navigeer
+    Dan zou ik de gebruikerslijst moeten zien
+```
+
+**German Example (AuthentifizierungDE.feature)**
+```gherkin
+# language: de
+Funktionalität: Authentifizierung
+
+Szenario: Login mit gültigen Anmeldedaten
+    Angenommen ich bin auf der Login-Seite
+    Wenn ich Benutzername "john.doe@example.com" eingebe
+    Und ich Passwort "SecurePassword123" eingebe
+    Dann sollte ich eingeloggt sein
+```
+
+**Using German scenarios in your feature files:**
+```gherkin
+# language: de
+Funktionalität: Benutzerverwaltung
+
+Szenario: Neues Benutzerkonto erstellen
+    Angenommen I call scenario "Login mit gültigen Anmeldedaten" from feature "Authentifizierung"
+    Wenn ich zum Benutzerverwaltungsbereich navigiere
+    Dann sollte ich die Benutzerliste sehen
+```
+
+**Supported Languages**: English (en), Dutch (nl), German (de), French (fr), Spanish (es), and many more. See [Gherkin language reference](https://cucumber.io/docs/gherkin/languages/) for a complete list.
+
+**Mixed Language Support**: You can call scenarios from feature files written in different languages. The plugin automatically detects the language of each feature file.
 
 ## Requirements
 
