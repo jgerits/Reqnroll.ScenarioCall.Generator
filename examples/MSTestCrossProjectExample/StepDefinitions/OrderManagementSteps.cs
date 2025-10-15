@@ -127,6 +127,12 @@ public class OrderManagementSteps
     {
         Console.WriteLine($"Selecting order: {orderId}");
         _scenarioContext["SelectedOrderId"] = orderId;
+        
+        // Ensure the order exists in the dictionary (simulating existing order in system)
+        if (!_orders.ContainsKey(orderId))
+        {
+            _orders[orderId] = "Completed"; // Default status for existing orders
+        }
     }
 
     // Note: "I should see message" step is provided by SharedAuthLibrary
