@@ -20,6 +20,7 @@ public class OrderManagementSteps
     }
 
     [When(@"I navigate to the products page")]
+    [When(@"ik naar de productenpagina navigeer")]
     public void WhenINavigateToTheProductsPage()
     {
         Console.WriteLine("Navigating to products page");
@@ -32,6 +33,7 @@ public class OrderManagementSteps
     }
 
     [When(@"I add ""(.*)"" to cart")]
+    [When(@"ik voeg ""(.*)"" toe aan winkelwagen")]
     public void WhenIAddToCart(string productName)
     {
         Console.WriteLine($"Adding {productName} to cart");
@@ -40,6 +42,7 @@ public class OrderManagementSteps
     }
 
     [When(@"I proceed to checkout")]
+    [When(@"ik ga verder naar afrekenen")]
     public void WhenIProceedToCheckout()
     {
         Console.WriteLine("Proceeding to checkout");
@@ -55,6 +58,7 @@ public class OrderManagementSteps
     }
 
     [Then(@"I should see order confirmation")]
+    [Then(@"zou ik bestelbevestiging moeten zien")]
     public void ThenIShouldSeeOrderConfirmation()
     {
         Console.WriteLine("Verifying order confirmation");
@@ -65,10 +69,11 @@ public class OrderManagementSteps
     }
 
     [Then(@"I should see ""(.*)"" in my order history")]
+    [Then(@"zou ik ""(.*)"" in mijn bestelgeschiedenis moeten zien")]
     public void ThenIShouldSeeInMyOrderHistory(string orderId)
     {
         Console.WriteLine($"Verifying {orderId} in order history");
-        var expectedOrderId = orderId.Replace("Order #", "");
+        var expectedOrderId = orderId.Replace("Order #", "").Replace("Bestelling #", "");
         if (!_orders.ContainsKey(expectedOrderId))
         {
             throw new Exception($"Order {expectedOrderId} not found in history");
@@ -76,6 +81,7 @@ public class OrderManagementSteps
     }
 
     [When(@"I navigate to my account page")]
+    [When(@"ik naar mijn accountpagina navigeer")]
     public void WhenINavigateToMyAccountPage()
     {
         Console.WriteLine("Navigating to account page");
@@ -87,6 +93,7 @@ public class OrderManagementSteps
     }
 
     [When(@"I click on ""(.*)""")]
+    [When(@"ik klik op ""(.*)""")]
     public void WhenIClickOn(string linkOrButton)
     {
         Console.WriteLine($"Clicking on: {linkOrButton}");
@@ -94,11 +101,12 @@ public class OrderManagementSteps
     }
     
     [When(@"I click ""(.*)"" button")]
+    [When(@"ik klik op ""(.*)"" knop")]
     public void WhenIClickButton(string buttonText)
     {
         Console.WriteLine($"Clicking button: {buttonText}");
         
-        if (buttonText == "Cancel Order")
+        if (buttonText == "Cancel Order" || buttonText == "Bestelling annuleren")
         {
             var orderId = _scenarioContext["SelectedOrderId"] as string;
             if (orderId != null && _orders.ContainsKey(orderId))
@@ -109,6 +117,7 @@ public class OrderManagementSteps
     }
 
     [Then(@"I should see a list of my previous orders")]
+    [Then(@"zou ik een lijst van mijn eerdere bestellingen moeten zien")]
     public void ThenIShouldSeeAListOfMyPreviousOrders()
     {
         Console.WriteLine("Verifying previous orders list is displayed");
@@ -116,6 +125,7 @@ public class OrderManagementSteps
     }
 
     [Then(@"I should see order dates and totals")]
+    [Then(@"zou ik besteldatums en totalen moeten zien")]
     public void ThenIShouldSeeOrderDatesAndTotals()
     {
         Console.WriteLine("Verifying order details are displayed");
@@ -123,6 +133,7 @@ public class OrderManagementSteps
     }
 
     [When(@"I select order ""(.*)""")]
+    [When(@"ik selecteer bestelling ""(.*)""")]
     public void WhenISelectOrder(string orderId)
     {
         Console.WriteLine($"Selecting order: {orderId}");
@@ -141,6 +152,7 @@ public class OrderManagementSteps
     // Note: "I click button" step is shared - defined above in this class
 
     [Then(@"order ""(.*)"" should have status ""(.*)""")]
+    [Then(@"bestelling ""(.*)"" zou status ""(.*)"" moeten hebben")]
     public void ThenOrderShouldHaveStatus(string orderId, string expectedStatus)
     {
         Console.WriteLine($"Verifying order {orderId} has status {expectedStatus}");
@@ -150,9 +162,11 @@ public class OrderManagementSteps
         }
         
         var actualStatus = _orders[orderId];
-        if (actualStatus != expectedStatus)
+        // Handle both English and Dutch status values
+        var normalizedExpected = expectedStatus == "Geannuleerd" ? "Cancelled" : expectedStatus;
+        if (actualStatus != normalizedExpected)
         {
-            throw new Exception($"Expected status '{expectedStatus}' but found '{actualStatus}'");
+            throw new Exception($"Expected status '{normalizedExpected}' but found '{actualStatus}'");
         }
     }
 }
