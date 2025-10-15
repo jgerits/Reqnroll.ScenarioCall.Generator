@@ -19,6 +19,7 @@ public class ProductReviewSteps
     }
 
     [When(@"I navigate to product ""(.*)""")]
+    [When(@"ik naar product ""(.*)"" navigeer")]
     public void WhenINavigateToProduct(string productName)
     {
         Console.WriteLine($"Navigating to product: {productName}");
@@ -34,6 +35,7 @@ public class ProductReviewSteps
     // No need to duplicate it here
 
     [When(@"I enter review title ""(.*)""")]
+    [When(@"ik voer beoordelingstitel ""(.*)"" in")]
     public void WhenIEnterReviewTitle(string title)
     {
         Console.WriteLine($"Entering review title: {title}");
@@ -41,6 +43,7 @@ public class ProductReviewSteps
     }
 
     [When(@"I enter review text ""(.*)""")]
+    [When(@"ik voer beoordelingstekst ""(.*)"" in")]
     public void WhenIEnterReviewText(string reviewText)
     {
         Console.WriteLine($"Entering review text: {reviewText}");
@@ -48,6 +51,7 @@ public class ProductReviewSteps
     }
 
     [When(@"I select rating ""(.*)"" stars")]
+    [When(@"ik selecteer waardering ""(.*)"" sterren")]
     public void WhenISelectRatingStars(int rating)
     {
         Console.WriteLine($"Selecting rating: {rating} stars");
@@ -55,6 +59,7 @@ public class ProductReviewSteps
     }
 
     [When(@"I submit the review")]
+    [When(@"ik dien de beoordeling in")]
     public void WhenISubmitTheReview()
     {
         Console.WriteLine("Submitting review");
@@ -75,6 +80,7 @@ public class ProductReviewSteps
     // No need to duplicate it here
 
     [Then(@"my review should appear on the product page")]
+    [Then(@"zou mijn beoordeling op de productpagina moeten verschijnen")]
     public void ThenMyReviewShouldAppearOnTheProductPage()
     {
         Console.WriteLine("Verifying review appears on product page");
@@ -95,6 +101,7 @@ public class ProductReviewSteps
     // No need to duplicate them here
 
     [When(@"I select review for product ""(.*)""")]
+    [When(@"ik selecteer beoordeling voor product ""(.*)""")]
     public void WhenISelectReviewForProduct(string productName)
     {
         Console.WriteLine($"Selecting review for product: {productName}");
@@ -102,6 +109,7 @@ public class ProductReviewSteps
     }
 
     [When(@"I change review text to ""(.*)""")]
+    [When(@"ik wijzig beoordelingstekst naar ""(.*)""")]
     public void WhenIChangeReviewTextTo(string newReviewText)
     {
         Console.WriteLine($"Changing review text to: {newReviewText}");
@@ -109,6 +117,7 @@ public class ProductReviewSteps
     }
 
     [When(@"I save the review")]
+    [When(@"ik sla de beoordeling op")]
     public void WhenISaveTheReview()
     {
         Console.WriteLine("Saving review");
@@ -126,6 +135,7 @@ public class ProductReviewSteps
     }
 
     [When(@"I see a review with inappropriate content")]
+    [When(@"ik zie een beoordeling met ongepaste inhoud")]
     public void WhenISeeAReviewWithInappropriateContent()
     {
         Console.WriteLine("Identifying inappropriate review");
@@ -133,6 +143,7 @@ public class ProductReviewSteps
     }
 
     [When(@"I click ""(.*)"" link")]
+    [When(@"ik klik op ""(.*)"" link")]
     public void WhenIClickLink(string linkText)
     {
         Console.WriteLine($"Clicking link: {linkText}");
@@ -140,6 +151,7 @@ public class ProductReviewSteps
     }
 
     [When(@"I select reason ""(.*)""")]
+    [When(@"ik selecteer reden ""(.*)""")]
     public void WhenISelectReason(string reason)
     {
         Console.WriteLine($"Selecting reason: {reason}");
@@ -147,6 +159,7 @@ public class ProductReviewSteps
     }
 
     [When(@"I submit the report")]
+    [When(@"ik dien het rapport in")]
     public void WhenISubmitTheReport()
     {
         Console.WriteLine("Submitting report");
@@ -154,6 +167,7 @@ public class ProductReviewSteps
     }
 
     [Then(@"the review should be flagged for moderation")]
+    [Then(@"zou de beoordeling gemarkeerd moeten worden voor moderatie")]
     public void ThenTheReviewShouldBeFlaggedForModeration()
     {
         Console.WriteLine("Verifying review is flagged for moderation");

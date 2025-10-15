@@ -13,6 +13,7 @@ public class AuthenticationSteps
     }
 
     [Given(@"I am on the login page")]
+    [Given(@"ik ben op de inlogpagina")]
     public void GivenIAmOnTheLoginPage()
     {
         Console.WriteLine("Navigating to login page");
@@ -20,6 +21,7 @@ public class AuthenticationSteps
     }
 
     [When(@"I enter username ""(.*)""")]
+    [When(@"ik gebruikersnaam ""(.*)"" invoer")]
     public void WhenIEnterUsername(string username)
     {
         Console.WriteLine($"Entering username: {username}");
@@ -27,6 +29,7 @@ public class AuthenticationSteps
     }
 
     [When(@"I enter password ""(.*)""")]
+    [When(@"ik wachtwoord ""(.*)"" invoer")]
     public void WhenIEnterPassword(string password)
     {
         Console.WriteLine($"Entering password: {password}");
@@ -34,6 +37,7 @@ public class AuthenticationSteps
     }
 
     [When(@"I click the login button")]
+    [When(@"ik op de inlogknop klik")]
     public void WhenIClickTheLoginButton()
     {
         Console.WriteLine("Clicking login button");
@@ -54,6 +58,7 @@ public class AuthenticationSteps
     }
 
     [Then(@"I should be redirected to the dashboard")]
+    [Then(@"zou ik naar het dashboard geleid moeten worden")]
     public void ThenIShouldBeRedirectedToTheDashboard()
     {
         Console.WriteLine("Verifying redirect to dashboard");
@@ -65,6 +70,7 @@ public class AuthenticationSteps
     }
 
     [Then(@"I should see ""(.*)"" message")]
+    [Then(@"zou ik ""(.*)"" bericht moeten zien")]
     public void ThenIShouldSeeMessage(string message)
     {
         Console.WriteLine($"Verifying message: {message}");
@@ -72,6 +78,7 @@ public class AuthenticationSteps
     }
 
     [Given(@"I am logged into the system")]
+    [Given(@"ik ben ingelogd in het systeem")]
     public void GivenIAmLoggedIntoTheSystem()
     {
         Console.WriteLine("Setting up logged in state");
@@ -80,6 +87,7 @@ public class AuthenticationSteps
     }
 
     [When(@"I click the logout button")]
+    [When(@"ik op de uitlogknop klik")]
     public void WhenIClickTheLogoutButton()
     {
         Console.WriteLine("Clicking logout button");
@@ -88,6 +96,7 @@ public class AuthenticationSteps
     }
 
     [Then(@"I should be redirected to the login page")]
+    [Then(@"zou ik naar de inlogpagina geleid moeten worden")]
     public void ThenIShouldBeRedirectedToTheLoginPage()
     {
         Console.WriteLine("Verifying redirect to login page");
@@ -98,6 +107,7 @@ public class AuthenticationSteps
     }
 
     [Then(@"I should see ""(.*)"" error message")]
+    [Then(@"zou ik ""(.*)"" foutmelding moeten zien")]
     public void ThenIShouldSeeErrorMessage(string errorMessage)
     {
         Console.WriteLine($"Verifying error message: {errorMessage}");
@@ -108,6 +118,7 @@ public class AuthenticationSteps
     }
 
     [Then(@"I should remain on the login page")]
+    [Then(@"zou ik op de inlogpagina moeten blijven")]
     public void ThenIShouldRemainOnTheLoginPage()
     {
         Console.WriteLine("Verifying still on login page");
