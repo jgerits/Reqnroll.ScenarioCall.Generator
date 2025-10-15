@@ -6,7 +6,7 @@ Functionaliteit: Productbeoordelingen
 
 Scenario: Productbeoordeling indienen
     # Hergebruik het inlogscenario uit de gedeelde authenticatiebibliotheek
-    Gegeven I call scenario "Inloggen met geldige inloggegevens" from feature "Gedeelde Authenticatie"
+    Gegeven ik roep scenario "Inloggen met geldige inloggegevens" aan uit functionaliteit "Gedeelde Authenticatie"
     Als ik naar product "Widget" navigeer
     En ik klik op "Schrijf een beoordeling" knop
     En ik voer beoordelingstitel "Geweldig product!" in
@@ -18,7 +18,7 @@ Scenario: Productbeoordeling indienen
 
 Scenario: Mijn beoordeling bewerken
     # Een ander voorbeeld van hergebruik van cross-project scenario
-    Gegeven I call scenario "Inloggen met geldige inloggegevens" from feature "Gedeelde Authenticatie"
+    Gegeven ik roep scenario "Inloggen met geldige inloggegevens" aan uit functionaliteit "Gedeelde Authenticatie"
     Als ik naar mijn accountpagina navigeer
     En ik klik op "Mijn beoordelingen"
     En ik selecteer beoordeling voor product "Widget"
@@ -29,7 +29,7 @@ Scenario: Mijn beoordeling bewerken
 
 Scenario: Ongepaste beoordeling rapporteren
     # Gebruik het inlogscenario en vervolgens rapportagefunctionaliteit
-    Gegeven I call scenario "Inloggen met geldige inloggegevens" from feature "Gedeelde Authenticatie"
+    Gegeven ik roep scenario "Inloggen met geldige inloggegevens" aan uit functionaliteit "Gedeelde Authenticatie"
     Als ik naar product "Gadget" navigeer
     En ik zie een beoordeling met ongepaste inhoud
     En ik klik op "Beoordeling rapporteren" link

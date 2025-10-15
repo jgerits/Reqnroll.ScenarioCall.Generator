@@ -61,6 +61,35 @@ public class ScenarioCallFeatureGenerator : IFeatureGenerator
         return "en"; // Default to English
     }
 
+    private static List<(string callPhrase, string fromPhrase)> GetScenarioCallPhrases(string language)
+    {
+        // Return language-specific phrases for scenario calls
+        var phrases = new List<(string, string)>();
+        
+        switch (language.ToLowerInvariant())
+        {
+            case "nl": // Dutch
+                phrases.Add(("ik roep scenario", "aan uit functionaliteit"));
+                phrases.Add(("ik roep scenario", "aan van functionaliteit"));
+                break;
+            case "de": // German
+                phrases.Add(("ich rufe Szenario", "auf aus Funktionalität"));
+                phrases.Add(("ich rufe Szenario", "auf von Funktionalität"));
+                break;
+            case "fr": // French
+                phrases.Add(("j'appelle le scénario", "de la fonctionnalité"));
+                break;
+            case "es": // Spanish
+                phrases.Add(("llamo al escenario", "de la característica"));
+                break;
+        }
+        
+        // Always include English as fallback
+        phrases.Add(("I call scenario", "from feature"));
+        
+        return phrases;
+    }
+
     private bool StartsWithAnyKeyword(string line, IEnumerable<string> keywords)
     {
         foreach (var keyword in keywords)
@@ -153,13 +182,15 @@ public class ScenarioCallFeatureGenerator : IFeatureGenerator
         
         var keywordPattern = string.Join("|", allStepKeywords.Select(Regex.Escape));
         
-        // Support English "I call scenario" pattern and also a more generic pattern
-        // that works across languages: step keyword + "call scenario" or dialect-specific translations
-        var patterns = new[]
+        // Get language-specific phrases for scenario calls
+        var scenarioCallPhrases = GetScenarioCallPhrases(dialect.Language);
+        var patterns = new List<string>();
+        
+        foreach (var (callPhrase, fromPhrase) in scenarioCallPhrases)
         {
-            $@"({keywordPattern})\s+I call scenario ""([^""]+)"" from feature ""([^""]+)""",
-            // Add more language-specific patterns as needed
-        };
+            var pattern = $@"({keywordPattern})\s+{Regex.Escape(callPhrase)}\s+""([^""]+)""\s+{Regex.Escape(fromPhrase)}\s+""([^""]+)""";
+            patterns.Add(pattern);
+        }
         
         foreach (var pattern in patterns)
         {
@@ -185,13 +216,27 @@ public class ScenarioCallFeatureGenerator : IFeatureGenerator
             .Distinct();
         
         var keywordPattern = string.Join("|", allStepKeywords.Select(Regex.Escape));
-        var pattern = $@"({keywordPattern})\s+I call scenario ""([^""]+)"" from feature ""([^""]+)""";
         
-        var match = Regex.Match(callStepLine, pattern, RegexOptions.IgnoreCase);
-        if (!match.Success) return null;
-
-        var scenarioName = match.Groups[2].Value;
-        var featureName = match.Groups[3].Value;
+        // Try all language-specific patterns
+        var scenarioCallPhrases = GetScenarioCallPhrases(dialect.Language);
+        string scenarioName = null;
+        string featureName = null;
+        
+        foreach (var (callPhrase, fromPhrase) in scenarioCallPhrases)
+        {
+            var pattern = $@"({keywordPattern})\s+{Regex.Escape(callPhrase)}\s+""([^""]+)""\s+{Regex.Escape(fromPhrase)}\s+""([^""]+)""";
+            var match = Regex.Match(callStepLine, pattern, RegexOptions.IgnoreCase);
+            
+            if (match.Success)
+            {
+                scenarioName = match.Groups[2].Value;
+                featureName = match.Groups[3].Value;
+                break;
+            }
+        }
+        
+        if (scenarioName == null || featureName == null) return null;
+        
         var leadingWhitespace = callStepLine.Substring(0, callStepLine.Length - callStepLine.TrimStart().Length);
 
         try

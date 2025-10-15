@@ -419,3 +419,6 @@ FodyWeavers.xsd
 /.idea
 .DS_Store
 /examples/.idea
+
+# Reqnroll generated feature files
+*.feature.cs

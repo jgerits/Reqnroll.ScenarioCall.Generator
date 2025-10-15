@@ -144,6 +144,32 @@ Scenario: Inloggen
     }
 
     [Fact]
+    public void PreprocessFeatureContent_WithDutchFeature_WithDutchTranslation_ExpandsScenarioCall()
+    {
+        // Arrange
+        var originalContent = @"# language: nl
+Functionaliteit: Test Functionaliteit
+Scenario: Test Scenario
+    Gegeven ik roep scenario ""Inloggen"" aan uit functionaliteit ""Authenticatie""";
+
+        SetupFeatureFileContent("Authenticatie", @"# language: nl
+Functionaliteit: Authenticatie
+Scenario: Inloggen
+    Gegeven ik ben op de inlogpagina
+    Als ik mijn inloggegevens invoer
+    Dan zou ik ingelogd moeten zijn");
+
+        // Act
+        var result = _generator.PreprocessFeatureContent(originalContent);
+
+        // Assert
+        Assert.Contains("# Expanded from scenario call", result);
+        Assert.Contains("Gegeven ik ben op de inlogpagina", result);
+        Assert.Contains("Als ik mijn inloggegevens invoer", result);
+        Assert.Contains("Dan zou ik ingelogd moeten zijn", result);
+    }
+
+    [Fact]
     public void PreprocessFeatureContent_MixedLanguages_ExpandsCorrectly()
     {
         // Arrange - English feature calling German scenario

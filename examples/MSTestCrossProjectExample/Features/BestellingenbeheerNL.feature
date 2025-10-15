@@ -10,7 +10,7 @@ Functionaliteit: Bestellingenbeheer
 Scenario: Bestelling plaatsen als geauthenticeerde gebruiker
     # Deze scenario-aanroep verwijst naar het GedeeldeAuthenticatiebibliotheek-project
     # Het scenario wordt tijdens het bouwen uitgebreid door de generator-plugin
-    Gegeven I call scenario "Inloggen met geldige inloggegevens" from feature "Gedeelde Authenticatie"
+    Gegeven ik roep scenario "Inloggen met geldige inloggegevens" aan uit functionaliteit "Gedeelde Authenticatie"
     Als ik naar de productenpagina navigeer
     En ik voeg "Widget" toe aan winkelwagen
     En ik voeg "Gadget" toe aan winkelwagen
@@ -20,7 +20,7 @@ Scenario: Bestelling plaatsen als geauthenticeerde gebruiker
 
 Scenario: Bestelgeschiedenis bekijken
     # Een ander voorbeeld van het aanroepen van een cross-project scenario
-    Gegeven I call scenario "Inloggen met geldige inloggegevens" from feature "Gedeelde Authenticatie"
+    Gegeven ik roep scenario "Inloggen met geldige inloggegevens" aan uit functionaliteit "Gedeelde Authenticatie"
     Als ik naar mijn accountpagina navigeer
     En ik klik op "Bestelgeschiedenis"
     Dan zou ik een lijst van mijn eerdere bestellingen moeten zien
@@ -28,7 +28,7 @@ Scenario: Bestelgeschiedenis bekijken
 
 Scenario: Bestelling annuleren
     # Cross-project scenario-aanroep gevolgd door bedrijfslogica
-    Gegeven I call scenario "Inloggen met geldige inloggegevens" from feature "Gedeelde Authenticatie"
+    Gegeven ik roep scenario "Inloggen met geldige inloggegevens" aan uit functionaliteit "Gedeelde Authenticatie"
     Als ik naar mijn accountpagina navigeer
     En ik klik op "Bestelgeschiedenis"
     En ik selecteer bestelling "12345"
