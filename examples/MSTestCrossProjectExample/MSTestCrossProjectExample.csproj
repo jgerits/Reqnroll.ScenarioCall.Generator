@@ -14,7 +14,7 @@
       In a real project, you would use the NuGet package:
       <PackageReference Include="JGerits.Reqnroll.ScenarioCall.Generator" Version="3.0.8" />
     -->
-    <ProjectReference Include="..\..\Reqnroll.ScenarioCall.Generator\Reqnroll.ScenarioCall.Generator.csproj" />
+    <PackageReference Include="JGerits.Reqnroll.ScenarioCall.Generator" Version="3.0.8" />
     
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.11.1" />
     <PackageReference Include="MSTest.TestAdapter" Version="3.6.3" />
