@@ -150,7 +150,7 @@ Scenario: Inloggen
         var originalContent = @"# language: nl
 Functionaliteit: Test Functionaliteit
 Scenario: Test Scenario
-    Gegeven ik roep scenario aan ""Inloggen"" uit functionaliteit ""Authenticatie""";
+    Gegeven ik roep scenario ""Inloggen"" aan uit functionaliteit ""Authenticatie""";
 
         SetupFeatureFileContent("Authenticatie", @"# language: nl
 Functionaliteit: Authenticatie

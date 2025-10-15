@@ -69,12 +69,12 @@ public class ScenarioCallFeatureGenerator : IFeatureGenerator
         switch (language.ToLowerInvariant())
         {
             case "nl": // Dutch
-                phrases.Add(("ik roep scenario aan", "uit functionaliteit"));
-                phrases.Add(("ik roep scenario aan", "van functionaliteit"));
+                phrases.Add(("ik roep scenario", "aan uit functionaliteit"));
+                phrases.Add(("ik roep scenario", "aan van functionaliteit"));
                 break;
             case "de": // German
-                phrases.Add(("ich rufe Szenario auf", "aus Funktionalität"));
-                phrases.Add(("ich rufe Szenario auf", "von Funktionalität"));
+                phrases.Add(("ich rufe Szenario", "auf aus Funktionalität"));
+                phrases.Add(("ich rufe Szenario", "auf von Funktionalität"));
                 break;
             case "fr": // French
                 phrases.Add(("j'appelle le scénario", "de la fonctionnalité"));
