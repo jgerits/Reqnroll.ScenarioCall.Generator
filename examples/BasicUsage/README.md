@@ -4,8 +4,13 @@ This example demonstrates the core functionality of the Reqnroll.ScenarioCall.Ge
 
 ## Files
 
+### English Examples
 - **Authentication.feature**: Contains reusable authentication scenarios
 - **UserManagement.feature**: Demonstrates calling authentication scenarios from user management tests
+
+### Dutch Examples (Nederlands)
+- **AuthenticatieNL.feature**: Bevat herbruikbare authenticatie scenario's
+- **GebruikersbeheerNL.feature**: Demonstreert het aanroepen van authenticatie scenario's vanuit gebruikersbeheer tests
 
 ## Key Concepts Shown
 
@@ -29,6 +34,41 @@ Each user management test follows a pattern:
 3. Logout (using scenario call)
 
 This ensures consistent setup and teardown across all tests.
+
+## Dutch Language Examples
+
+The same examples are also provided in Dutch (Nederlands) to demonstrate the multi-language support of the plugin.
+
+### Key Differences in Dutch
+
+The Dutch examples use the `# language: nl` directive and Dutch Gherkin keywords:
+
+```gherkin
+# language: nl
+Functionaliteit: Authenticatie
+
+Scenario: Inloggen met geldige inloggegevens
+    Gegeven ik ben op de inlogpagina
+    Als ik gebruikersnaam "john.doe@example.com" invoer
+    En ik wachtwoord "SecurePassword123" invoer
+    En ik op de inlogknop klik
+    Dan zou ik naar het dashboard geleid moeten worden
+    En zou ik "Welkom, John Doe" bericht moeten zien
+```
+
+### Dutch Scenario Call Syntax
+
+When calling scenarios in Dutch, use the translated phrase:
+
+```gherkin
+Gegeven ik roep scenario "Inloggen met geldige inloggegevens" aan uit functionaliteit "Authenticatie"
+```
+
+This is equivalent to the English version:
+
+```gherkin
+Given I call scenario "Login with Valid Credentials" from feature "Authentication"
+```
 
 ## Generated Output
 
