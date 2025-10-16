@@ -9,6 +9,11 @@ permissions:
     branches: [main, master]
     paths-ignore:
       - 'examples/**'
+      - '*.md'
+      - 'LICENSE'
+      - '.gitignore'
+      - 'CONTRIBUTING.md'
+      - 'TESTING.md'
   pull_request:
     branches: [main, master]
   release:
@@ -65,12 +70,55 @@ jobs:
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Check for relevant changes
+        id: check_changes
+        run: |
+          # Get the list of changed files in the last commit
+          CHANGED_FILES=$(git diff --name-only HEAD~1 HEAD || echo "")
+          echo "Changed files: $CHANGED_FILES"
+          
+          # Check if any relevant files were changed
+          RELEVANT_CHANGE=false
+          
+          # List of patterns for files that should trigger a release
+          RELEVANT_PATTERNS=(
+            "^Reqnroll.ScenarioCall.Generator/.*\.cs$"
+            "^Reqnroll.ScenarioCall.Generator/.*\.csproj$"
+            "^Reqnroll.ScenarioCall.Generator.Tests/.*\.cs$"
+            "^Reqnroll.ScenarioCall.Generator.IntegrationTests/.*\.cs$"
+            "^Reqnroll.ScenarioCall.Generator.IntegrationTests.MSTest/.*\.cs$"
+            "^Reqnroll.ScenarioCall.Generator.IntegrationTests.NUnit/.*\.cs$"
+            "^Reqnroll.ScenarioCall.Generator/build/.*$"
+            "^CHANGELOG.md$"
+          )
+          
+          # Check each changed file against relevant patterns
+          for file in $CHANGED_FILES; do
+            for pattern in "${RELEVANT_PATTERNS[@]}"; do
+              if echo "$file" | grep -qE "$pattern"; then
+                RELEVANT_CHANGE=true
+                echo "Found relevant change: $file"
+                break 2
+              fi
+            done
+          done
+          
+          echo "relevant=$RELEVANT_CHANGE" >> $GITHUB_OUTPUT
+          
+          if [ "$RELEVANT_CHANGE" = "false" ]; then
+            echo "No relevant changes detected. Skipping release."
+          else
+            echo "Relevant changes detected. Proceeding with release."
+          fi
+
       - name: Setup .NET
+        if: steps.check_changes.outputs.relevant == 'true'
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '8.0.x'
 
       - name: Get current version
+        if: steps.check_changes.outputs.relevant == 'true'
         id: current_version
         run: |
           CURRENT_VERSION=$(grep -o '<Version>[^<]*</Version>' Reqnroll.ScenarioCall.Generator/Reqnroll.ScenarioCall.Generator.csproj | sed 's/<Version>\(.*\)<\/Version>/\1/')
@@ -78,6 +126,7 @@ jobs:
           echo "version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
 
       - name: Increment patch version
+        if: steps.check_changes.outputs.relevant == 'true'
         id: new_version
         run: |
           CURRENT_VERSION="${{ steps.current_version.outputs.version }}"
@@ -90,6 +139,7 @@ jobs:
           echo "version=$NEW_VERSION" >> $GITHUB_OUTPUT
 
       - name: Update version in project file
+        if: steps.check_changes.outputs.relevant == 'true'
         run: |
           NEW_VERSION="${{ steps.new_version.outputs.version }}"
           sed -i "s|<Version>[^<]*</Version>|<Version>$NEW_VERSION</Version>|g" Reqnroll.ScenarioCall.Generator/Reqnroll.ScenarioCall.Generator.csproj
@@ -97,18 +147,23 @@ jobs:
           sed -i "s|<FileVersion>[^<]*</FileVersion>|<FileVersion>$NEW_VERSION</FileVersion>|g" Reqnroll.ScenarioCall.Generator/Reqnroll.ScenarioCall.Generator.csproj
 
       - name: Restore dependencies
+        if: steps.check_changes.outputs.relevant == 'true'
         run: dotnet restore
 
       - name: Build solution
+        if: steps.check_changes.outputs.relevant == 'true'
         run: dotnet build --configuration Release --no-restore
 
       - name: Run tests
+        if: steps.check_changes.outputs.relevant == 'true'
         run: dotnet test --configuration Release --no-build --verbosity normal
 
       - name: Create NuGet package
+        if: steps.check_changes.outputs.relevant == 'true'
         run: dotnet pack --configuration Release --no-build --output ./artifacts
 
       - name: Commit version bump
+        if: steps.check_changes.outputs.relevant == 'true'
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
@@ -117,6 +172,7 @@ jobs:
           git push
 
       - name: Create Release
+        if: steps.check_changes.outputs.relevant == 'true'
         run: |
           NEW_VERSION="${{ steps.new_version.outputs.version }}"
           gh release create "v$NEW_VERSION" \
@@ -131,6 +187,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Publish to NuGet
+        if: steps.check_changes.outputs.relevant == 'true'
         run: |
           dotnet nuget push ./artifacts/*.nupkg \
             --api-key ${{ secrets.NUGET_API_KEY }} \

@@ -14,7 +14,8 @@
       In a real project, you would use the NuGet package:
       <PackageReference Include="JGerits.Reqnroll.ScenarioCall.Generator" Version="3.0.8" />
     -->
-    <PackageReference Include="JGerits.Reqnroll.ScenarioCall.Generator" Version="3.1.3" />
+    <!--<PackageReference Include="JGerits.Reqnroll.ScenarioCall.Generator" Version="3.1.3" />-->
+    <ProjectReference Include="..\..\Reqnroll.ScenarioCall.Generator\Reqnroll.ScenarioCall.Generator.csproj" />
     
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.0.0" />
     <PackageReference Include="MSTest.TestAdapter" Version="3.11.0" />
@@ -25,26 +26,12 @@
     
 
   <ItemGroup>
-    <!-- 
-      Exclude SharedAuth feature files from being treated as test features.
-      These are included only for reference by the ScenarioCall.Generator,
-      not to generate additional tests in this project.
-    -->
-    <None Include="Features\SharedAuth\*.feature">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      <Visible>true</Visible>
-    </None>
-    <Compile Remove="Features\SharedAuth\*.feature.cs" />
+    <ProjectReference Include="../SharedAuthLibrary/SharedAuthLibrary.csproj" />
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="..\..\Reqnroll.ScenarioCall.Generator\bin\Debug\netstandard2.0\">
-      <Link>netstandard2.0</Link>
-    </Folder>
-  </ItemGroup>
-
-  <ItemGroup>
-    <ProjectReference Include="..\SharedAuthLibrary\SharedAuthLibrary.csproj" />
+    <!-- Register the generator plugin for Reqnroll code generation -->
+    <ReqnrollGeneratorPlugins Include="$(MSBuildProjectDirectory)/../../Reqnroll.ScenarioCall.Generator/bin/$(Configuration)/netstandard2.0/Reqnroll.ScenarioCall.Generator.dll" />
   </ItemGroup>
 
 </Project>

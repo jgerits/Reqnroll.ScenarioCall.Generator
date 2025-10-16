@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Xml.Linq;
 using Reqnroll.Configuration;
 using Reqnroll.Generator;
 using Reqnroll.Generator.CodeDom;
@@ -19,6 +20,7 @@ public class ScenarioCallTestGenerator : TestGenerator
 {
     private readonly Dictionary<string, string> _featureFileCache = new();
     private readonly Dictionary<string, GherkinDialect> _dialectCache = new();
+    private readonly ProjectSettings _projectSettings;
 
     public ScenarioCallTestGenerator(
         ReqnrollConfiguration reqnrollConfiguration,
@@ -29,6 +31,7 @@ public class ScenarioCallTestGenerator : TestGenerator
         GeneratorInfo generatorInfo)
         : base(reqnrollConfiguration, projectSettings, featureGeneratorRegistry, codeDomHelper, gherkinParserFactory, generatorInfo)
     {
+        _projectSettings = projectSettings;
     }
 
     protected override ReqnrollDocument ParseContent(IGherkinParser parser, TextReader contentReader, ReqnrollDocumentLocation documentLocation)
@@ -350,30 +353,40 @@ public class ScenarioCallTestGenerator : TestGenerator
             return cachedContent;
         }
 
-        var currentDirectory = Environment.CurrentDirectory;
-        var featureFiles = GetFeatureFilePaths(currentDirectory);
-
-        foreach (var featureFile in featureFiles)
+        // Try project folder first, fall back to current directory
+        var searchDirectories = new List<string>();
+        if (_projectSettings?.ProjectFolder != null)
         {
-            try
+            searchDirectories.Add(_projectSettings.ProjectFolder);
+        }
+        searchDirectories.Add(Environment.CurrentDirectory);
+
+        foreach (var currentDirectory in searchDirectories.Distinct())
+        {
+            var featureFiles = GetFeatureFilePaths(currentDirectory);
+
+            foreach (var featureFile in featureFiles)
             {
-                var content = File.ReadAllText(featureFile);
-                // Try with language-aware extraction
-                var dialect = GetDialect(content);
-                var extractedFeatureName = ExtractFeatureNameFromContent(content, dialect);
-                    
-                if (extractedFeatureName != null)
+                try
                 {
-                    _featureFileCache[extractedFeatureName] = content;
-                    if (string.Equals(extractedFeatureName, featureName, StringComparison.OrdinalIgnoreCase))
+                    var content = File.ReadAllText(featureFile);
+                    // Try with language-aware extraction
+                    var dialect = GetDialect(content);
+                    var extractedFeatureName = ExtractFeatureNameFromContent(content, dialect);
+                        
+                    if (extractedFeatureName != null)
                     {
-                        return content;
+                        _featureFileCache[extractedFeatureName] = content;
+                        if (string.Equals(extractedFeatureName, featureName, StringComparison.OrdinalIgnoreCase))
+                        {
+                            return content;
+                        }
                     }
                 }
-            }
-            catch
-            {
-                // Continue with next file
+                catch
+                {
+                    // Continue with next file
+                }
             }
         }
 
@@ -414,6 +427,75 @@ public class ScenarioCallTestGenerator : TestGenerator
             }
         }
 
+        // Add feature files from referenced projects
+        var referencedProjectPaths = GetReferencedProjectPaths(baseDirectory);
+        foreach (var referencedProjectPath in referencedProjectPaths)
+        {
+            var referencedProjectDir = Path.GetDirectoryName(referencedProjectPath);
+            if (!string.IsNullOrEmpty(referencedProjectDir))
+            {
+                var referencedSearchPaths = new[]
+                {
+                    referencedProjectDir,
+                    Path.Combine(referencedProjectDir, "Features"),
+                    Path.Combine(referencedProjectDir, "Specs"),
+                    Path.Combine(referencedProjectDir, "Tests")
+                };
+
+                foreach (var searchPath in referencedSearchPaths)
+                {
+                    if (Directory.Exists(searchPath))
+                    {
+                        featureFiles.AddRange(Directory.GetFiles(searchPath, "*.feature", SearchOption.AllDirectories));
+                    }
+                }
+            }
+        }
+
         return featureFiles.Distinct();
+    }
+
+    private IEnumerable<string> GetReferencedProjectPaths(string baseDirectory)
+    {
+        var referencedProjects = new List<string>();
+
+        try
+        {
+            var projectFiles = Directory.GetFiles(baseDirectory, "*.csproj", SearchOption.TopDirectoryOnly);
+            
+            foreach (var projectFile in projectFiles)
+            {
+                try
+                {
+                    var doc = XDocument.Load(projectFile);
+                    var projectReferences = doc.Descendants("ProjectReference")
+                        .Select(pr => pr.Attribute("Include")?.Value)
+                        .Where(v => !string.IsNullOrEmpty(v))
+                        .ToList();
+
+                    foreach (var relativePath in projectReferences)
+                    {
+                        // Normalize path separators (handle both \ and /)
+                        var normalizedPath = relativePath.Replace('\\', Path.DirectorySeparatorChar);
+                        // Convert relative path to absolute path
+                        var absolutePath = Path.GetFullPath(Path.Combine(baseDirectory, normalizedPath));
+                        if (File.Exists(absolutePath))
+                        {
+                            referencedProjects.Add(absolutePath);
+                        }
+                    }
+                }
+                catch
+                {
+                    // Continue with next project file if this one fails
+                }
+            }
+        }
+        catch
+        {
+            // Return empty list if we can't read project references
+        }
+
+        return referencedProjects;
     }
 }

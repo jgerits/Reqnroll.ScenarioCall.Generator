@@ -47,49 +47,28 @@ The `.csproj` file includes a project reference to SharedAuthLibrary:
 - Makes SharedAuthLibrary's step definitions available to this project
 - Allows dependency injection to work across projects
 - Enables compilation and build order management
+- **Automatically discovers feature files** from the referenced project (no manual copying needed!)
 
-### Step 2: Make Feature Files Available
+### Step 2: Automatic Feature File Discovery ✨ NEW!
 
-The **critical configuration** that enables cross-project scenario calling is making the feature files available to the generator. There are two approaches:
+**No additional configuration needed!** The Reqnroll.ScenarioCall.Generator automatically discovers feature files from referenced projects.
 
-#### Option A: Physical Copy (Recommended for simplicity)
+The plugin now:
+1. **Parses your .csproj file** to find ProjectReference elements
+2. **Searches referenced projects** for feature files in common locations (Features/, Specs/, Tests/)
+3. **Makes scenarios available** for calling without any manual file copying or complex configuration
 
-```xml
-<ItemGroup>
-  <!-- 
-    Copy SharedAuthLibrary feature files to this project's Features directory.
-    This is REQUIRED for the ScenarioCall.Generator to find and expand scenarios
-    from the referenced project.
-  -->
-  <None Include="..\SharedAuthLibrary\Features\*.feature">
-    <Link>Features\SharedAuth\%(Filename)%(Extension)</Link>
-    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-  </None>
-</ItemGroup>
-```
+**That's it!** Just add the project reference and start calling scenarios.
 
-In this example, we **physically copied** the feature file from SharedAuthLibrary:
-```bash
-# From MSTestCrossProjectExample directory
-mkdir -p Features/SharedAuth
-cp ../SharedAuthLibrary/Features/SharedAuthentication.feature Features/SharedAuth/
-```
+#### Legacy Approach (No Longer Required)
 
-Then exclude it from code generation:
-```xml
-<ItemGroup>
-  <None Include="Features\SharedAuth\*.feature">
-    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-  </None>
-  <Compile Remove="Features\SharedAuth\*.feature.cs" />
-</ItemGroup>
-```
+In previous versions, you needed to manually copy feature files or use MSBuild to link them. This is **no longer necessary** as the plugin handles discovery automatically:
 
-#### Option B: MSBuild Link (For keeping files synchronized)
-
-Alternatively, you can use MSBuild to include the files without physically copying:
+<details>
+<summary>Click to see the old manual configuration (for reference only)</summary>
 
 ```xml
+<!-- ❌ NO LONGER NEEDED - Plugin discovers files automatically -->
 <ItemGroup>
   <None Include="..\SharedAuthLibrary\Features\*.feature">
     <Link>Features\SharedAuth\%(Filename)%(Extension)</Link>
@@ -99,20 +78,9 @@ Alternatively, you can use MSBuild to include the files without physically copyi
 </ItemGroup>
 ```
 
-**Why is this needed?**
+The plugin now handles all of this automatically through project reference discovery!
 
-The Reqnroll.ScenarioCall.Generator plugin searches for feature files in the current project's directory structure during build-time code generation. By making the feature files available:
-
-1. **Discovery**: The generator can find the feature files to read scenario definitions
-2. **Expansion**: Scenario calls are expanded inline during code generation
-3. **Build-time Processing**: No runtime dependencies on external feature files
-4. **No Test Duplication**: We exclude `.feature.cs` generation for copied files to avoid running the same tests twice
-
-**Important Notes:**
-- Option A (physical copy) is simpler but requires manual sync when SharedAuthLibrary features change
-- Option B (MSBuild link) keeps files synchronized automatically but may have platform compatibility issues
-- The `<Compile Remove>` prevents generating duplicate test methods for the copied feature files
-- You can include feature files from multiple projects using multiple `<None Include>` elements
+</details>
 
 ### Step 3: Call Scenarios from Other Projects
 
@@ -264,15 +232,16 @@ Use descriptive feature names that won't conflict:
 - ❌ "Authentication" (could be ambiguous)
 - ❌ "Login" (too generic)
 
-### 3. **Document Cross-Project Dependencies**
+### 3. **Use Project References**
 
-Add comments in your `.csproj` file explaining why features are copied:
+Simply add project references to shared libraries - the plugin handles the rest:
 ```xml
-<!-- Copy SharedAuthLibrary feature files for scenario call expansion -->
-<None Include="..\SharedAuthLibrary\Features\*.feature">
-  <Link>Features\SharedAuth\%(Filename)%(Extension)</Link>
-</None>
+<ItemGroup>
+  <ProjectReference Include="..\SharedAuthLibrary\SharedAuthLibrary.csproj" />
+</ItemGroup>
 ```
+
+No need for manual file copying or MSBuild link configurations!
 
 ### 4. **Version Control**
 
@@ -299,12 +268,13 @@ Don't create chains of scenario calls:
 
 ### Issue: "Could not expand scenario call"
 
-**Cause**: The feature file from SharedAuthLibrary wasn't copied correctly.
+**Cause**: The feature file from SharedAuthLibrary can't be found or the project reference is missing.
 
 **Solution**: 
-1. Check the `.csproj` file has the `<None Include>` configuration
-2. Verify the path to SharedAuthLibrary feature files is correct
+1. Verify the `<ProjectReference>` in `.csproj` is correct
+2. Ensure SharedAuthLibrary builds successfully
 3. Clean and rebuild: `dotnet clean && dotnet build`
+4. Check that feature files exist in SharedAuthLibrary's Features/ directory
 
 ### Issue: "Step definition not found"
 

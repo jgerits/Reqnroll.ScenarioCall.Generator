@@ -12,9 +12,10 @@ A powerful Reqnroll generator plugin that enables calling and embedding scenario
 - 🔄 **Scenario Reusability**: Call existing scenarios from any feature file
 - 🎯 **Inline Expansion**: Automatically expands scenario calls during test generation
 - 🗂️ **Cross-Feature Support**: Reference scenarios across different feature files
+- 🚀 **Cross-Project Support**: Automatically discovers and calls scenarios from referenced projects
 - 🏗️ **Build-Time Processing**: No runtime overhead - scenarios are expanded at build time
 - 🛡️ **Error Handling**: Graceful handling of missing scenarios with clear warnings
-- 📁 **Flexible File Discovery**: Automatically searches common feature file locations
+- 📁 **Automatic Discovery**: Automatically finds feature files in referenced projects - no manual copying needed
 - 🌍 **Multi-Language Support**: Supports all Gherkin languages (English, German, French, Spanish, Dutch, and more)
 
 ## Quick Start
@@ -138,6 +139,37 @@ MyProject/
 ```
 
 ## Advanced Usage
+
+### Cross-Project Scenario Calls ✨
+
+Call scenarios from other projects in your solution - perfect for sharing common test scenarios across multiple test projects!
+
+**Setup:**
+1. Add a project reference to the shared library:
+```xml
+<ItemGroup>
+  <ProjectReference Include="..\SharedAuthLibrary\SharedAuthLibrary.csproj" />
+</ItemGroup>
+```
+
+2. Call scenarios from the referenced project:
+```gherkin
+Feature: Order Management
+
+Scenario: Place Order as Authenticated User
+    Given I call scenario "Login with Valid Credentials" from feature "Shared Authentication"
+    When I navigate to the products page
+    And I proceed to checkout
+    Then I should see order confirmation
+```
+
+**How it works:**
+- The plugin automatically discovers feature files from referenced projects
+- No manual file copying or complex MSBuild configuration needed
+- Scenarios are expanded at build time just like same-project calls
+- Step definitions from referenced projects are available through dependency injection
+
+**Example:** See [examples/MSTestCrossProjectExample](examples/MSTestCrossProjectExample/) for a complete working example.
 
 ### Error Handling
 When a scenario call cannot be resolved, the plugin adds a warning comment instead of failing the build:

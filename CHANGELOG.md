@@ -8,6 +8,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Automatic Cross-Project Feature Discovery**: The plugin now automatically discovers feature files from referenced projects
+  - No manual file copying required
+  - No complex MSBuild configuration needed
+  - Simply add a `<ProjectReference>` and start calling scenarios from other projects
+  - Automatically searches common feature locations (Features/, Specs/, Tests/) in referenced projects
+  - Cross-platform path normalization for Windows and Unix-based systems
 - **Automatic Release System**: Every commit to main now automatically creates a new release
   - Patch version is automatically incremented (e.g., 3.0.0 → 3.0.1)
   - GitHub releases are created automatically with NuGet packages attached
@@ -20,7 +26,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Fixed typo in original README ("Scenerio's" → "Scenarios")
 - Updated CI/CD pipeline to support automatic releases on main branch commits
+- Updated documentation to reflect automatic cross-project discovery feature
 - **BREAKING**: Changed package ID from `Reqnroll.ScenarioCall.Generator` to `JGerits.Reqnroll.ScenarioCall.Generator` to avoid conflicts with reserved "reqnroll" prefix on nuget.org
+
+### Deprecated
+- Manual feature file copying configurations are no longer necessary (but still supported for backward compatibility)
 
 ## [3.0.0] - 2025-01-XX
 
