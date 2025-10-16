@@ -14,7 +14,7 @@
       In a real project, you would use the NuGet package:
       <PackageReference Include="JGerits.Reqnroll.ScenarioCall.Generator" Version="3.0.8" />
     -->
-    <PackageReference Include="JGerits.Reqnroll.ScenarioCall.Generator" Version="3.1.3" />
+    <PackageReference Include="JGerits.Reqnroll.ScenarioCall.Generator" Version="3.1.4" />
     
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.0.0" />
     <PackageReference Include="MSTest.TestAdapter" Version="3.11.0" />
@@ -26,21 +26,13 @@
 
   <ItemGroup>
     <!-- 
-      Exclude SharedAuth feature files from being treated as test features.
-      These are included only for reference by the ScenarioCall.Generator,
-      not to generate additional tests in this project.
+      Mark SharedAuth feature files as references only.
+      The ReqnrollFeatureReference item type is provided by JGerits.Reqnroll.ScenarioCall.Generator
+      and automatically excludes these files from test code generation.
     -->
-    <None Include="Features\SharedAuth\*.feature">
+    <ReqnrollFeatureReference Include="Features\SharedAuth\*.feature">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      <Visible>true</Visible>
-    </None>
-    <Compile Remove="Features\SharedAuth\*.feature.cs" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="..\..\Reqnroll.ScenarioCall.Generator\bin\Debug\netstandard2.0\">
-      <Link>netstandard2.0</Link>
-    </Folder>
+    </ReqnrollFeatureReference>
   </ItemGroup>
 
   <ItemGroup>

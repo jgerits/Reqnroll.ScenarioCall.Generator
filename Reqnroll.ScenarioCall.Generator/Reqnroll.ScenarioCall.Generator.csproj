@@ -5,9 +5,9 @@
         <LangVersion>latest</LangVersion>
         
         <!-- Version Information -->
-        <Version>3.1.3</Version>
-        <AssemblyVersion>3.1.3</AssemblyVersion>
-        <FileVersion>3.1.3</FileVersion>
+        <Version>3.1.4</Version>
+        <AssemblyVersion>3.1.4</AssemblyVersion>
+        <FileVersion>3.1.4</FileVersion>
         
         <!-- Package Metadata -->
         <PackageId>JGerits.Reqnroll.ScenarioCall.Generator</PackageId>
@@ -21,7 +21,7 @@
         <RepositoryType>git</RepositoryType>
         <PackageReadmeFile>README.md</PackageReadmeFile>
         <PackageTags>reqnroll;specflow;bdd;gherkin;testing;scenario;generator;plugin</PackageTags>
-        <PackageReleaseNotes>Initial release with basic scenario calling functionality, automatic feature file discovery, and error handling for missing scenarios.</PackageReleaseNotes>
+        <PackageReleaseNotes>Version 3.1.4: Added ReqnrollFeatureReference item type to simplify excluding reference-only feature files from code generation. No more manual <Compile Remove> required!</PackageReleaseNotes>
         
         <!-- Build Configuration -->
         <GeneratePackageOnBuild>false</GeneratePackageOnBuild>

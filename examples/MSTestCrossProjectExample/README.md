@@ -50,54 +50,33 @@ The `.csproj` file includes a project reference to SharedAuthLibrary:
 
 ### Step 2: Make Feature Files Available
 
-The **critical configuration** that enables cross-project scenario calling is making the feature files available to the generator. There are two approaches:
+The **critical configuration** that enables cross-project scenario calling is making the feature files available to the generator. 
 
-#### Option A: Physical Copy (Recommended for simplicity)
-
-```xml
-<ItemGroup>
-  <!-- 
-    Copy SharedAuthLibrary feature files to this project's Features directory.
-    This is REQUIRED for the ScenarioCall.Generator to find and expand scenarios
-    from the referenced project.
-  -->
-  <None Include="..\SharedAuthLibrary\Features\*.feature">
-    <Link>Features\SharedAuth\%(Filename)%(Extension)</Link>
-    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-  </None>
-</ItemGroup>
-```
-
-In this example, we **physically copied** the feature file from SharedAuthLibrary:
+In this example, we **physically copied** the feature files from SharedAuthLibrary:
 ```bash
 # From MSTestCrossProjectExample directory
 mkdir -p Features/SharedAuth
-cp ../SharedAuthLibrary/Features/SharedAuthentication.feature Features/SharedAuth/
+cp ../SharedAuthLibrary/Features/*.feature Features/SharedAuth/
 ```
 
-Then exclude it from code generation:
+Then mark them as reference-only using the `ReqnrollFeatureReference` item type:
 ```xml
 <ItemGroup>
-  <None Include="Features\SharedAuth\*.feature">
+  <!-- 
+    Mark SharedAuth feature files as references only.
+    The ReqnrollFeatureReference item type is provided by JGerits.Reqnroll.ScenarioCall.Generator
+    and automatically excludes these files from test code generation.
+  -->
+  <ReqnrollFeatureReference Include="Features\SharedAuth\*.feature">
     <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-  </None>
-  <Compile Remove="Features\SharedAuth\*.feature.cs" />
+  </ReqnrollFeatureReference>
 </ItemGroup>
 ```
 
-#### Option B: MSBuild Link (For keeping files synchronized)
-
-Alternatively, you can use MSBuild to include the files without physically copying:
-
-```xml
-<ItemGroup>
-  <None Include="..\SharedAuthLibrary\Features\*.feature">
-    <Link>Features\SharedAuth\%(Filename)%(Extension)</Link>
-    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-  </None>
-  <Compile Remove="Features\SharedAuth\*.feature.cs" />
-</ItemGroup>
-```
+**That's it!** The `ReqnrollFeatureReference` item type (introduced in version 3.1.4) automatically:
+- Prevents Reqnroll from generating test code for these files
+- Ensures the files are still copied to the output directory
+- Makes the files available for the ScenarioCall.Generator to read during expansion
 
 **Why is this needed?**
 
@@ -106,13 +85,22 @@ The Reqnroll.ScenarioCall.Generator plugin searches for feature files in the cur
 1. **Discovery**: The generator can find the feature files to read scenario definitions
 2. **Expansion**: Scenario calls are expanded inline during code generation
 3. **Build-time Processing**: No runtime dependencies on external feature files
-4. **No Test Duplication**: We exclude `.feature.cs` generation for copied files to avoid running the same tests twice
+4. **No Test Duplication**: The `ReqnrollFeatureReference` item prevents generating duplicate test methods for the copied feature files
 
-**Important Notes:**
-- Option A (physical copy) is simpler but requires manual sync when SharedAuthLibrary features change
-- Option B (MSBuild link) keeps files synchronized automatically but may have platform compatibility issues
-- The `<Compile Remove>` prevents generating duplicate test methods for the copied feature files
-- You can include feature files from multiple projects using multiple `<None Include>` elements
+**Alternative: MSBuild Link**
+
+Alternatively, you can use MSBuild to include files without physically copying them:
+
+```xml
+<ItemGroup>
+  <ReqnrollFeatureReference Include="..\SharedAuthLibrary\Features\*.feature">
+    <Link>Features\SharedAuth\%(Filename)%(Extension)</Link>
+    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+  </ReqnrollFeatureReference>
+</ItemGroup>
+```
+
+This keeps files synchronized automatically but may have platform compatibility issues.
 
 ### Step 3: Call Scenarios from Other Projects
 

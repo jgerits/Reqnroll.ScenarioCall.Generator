@@ -4,4 +4,28 @@
     <!-- Register the generator plugin for Reqnroll code generation -->
     <ReqnrollGeneratorPlugins Include="$(MSBuildThisFileDirectory)..\lib\netstandard2.0\Reqnroll.ScenarioCall.Generator.dll" />
   </ItemGroup>
+
+  <!-- 
+    Handle ReqnrollFeatureReference items: feature files that are only used for scenario call expansion,
+    not for generating test code in the current project.
+    
+    Usage in .csproj:
+    <ItemGroup>
+      <ReqnrollFeatureReference Include="Features\SharedAuth\*.feature">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </ReqnrollFeatureReference>
+    </ItemGroup>
+  -->
+  <Target Name="HandleReqnrollFeatureReferences" BeforeTargets="BeforeUpdateFeatureFilesInProject">
+    <ItemGroup>
+      <!-- Remove ReqnrollFeatureReference items from ReqnrollFeatureFiles to prevent code generation -->
+      <ReqnrollFeatureFiles Remove="@(ReqnrollFeatureReference)" Condition="'@(ReqnrollFeatureReference)' != ''" />
+      
+      <!-- Add ReqnrollFeatureReference items as None items instead, so they're still copied to output -->
+      <None Include="@(ReqnrollFeatureReference)" Condition="'@(ReqnrollFeatureReference)' != ''">
+        <CopyToOutputDirectory>%(ReqnrollFeatureReference.CopyToOutputDirectory)</CopyToOutputDirectory>
+        <Visible>%(ReqnrollFeatureReference.Visible)</Visible>
+      </None>
+    </ItemGroup>
+  </Target>
 </Project>
