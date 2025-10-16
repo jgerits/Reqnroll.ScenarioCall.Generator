@@ -16,6 +16,7 @@ A powerful Reqnroll generator plugin that enables calling and embedding scenario
 - 🛡️ **Error Handling**: Graceful handling of missing scenarios with clear warnings
 - 📁 **Flexible File Discovery**: Automatically searches common feature file locations
 - 🌍 **Multi-Language Support**: Supports all Gherkin languages (English, German, French, Spanish, Dutch, and more)
+- 🔗 **Cross-Project References**: Share scenarios across multiple test projects with simplified configuration (v3.1.4+)
 
 ## Quick Start
 
@@ -224,6 +225,51 @@ Szenario: Neues Benutzerkonto erstellen
 
 **Mixed Language Support**: You can call scenarios from feature files written in different languages. The plugin automatically detects the language of each feature file.
 
+### Cross-Project Scenario References
+
+The plugin supports calling scenarios from other projects in your solution. This is useful for maintaining reusable test libraries.
+
+See the [MSTestCrossProjectExample](examples/MSTestCrossProjectExample/) for a complete working example.
+
+**Setup:**
+
+1. **Add a project reference** to the shared test library:
+```xml
+<ItemGroup>
+  <ProjectReference Include="..\SharedAuthLibrary\SharedAuthLibrary.csproj" />
+</ItemGroup>
+```
+
+2. **Copy or link the feature files** from the shared library and mark them as reference-only:
+```xml
+<ItemGroup>
+  <!-- Mark SharedAuth feature files as references only (version 3.1.4+) -->
+  <ReqnrollFeatureReference Include="Features\SharedAuth\*.feature">
+    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+  </ReqnrollFeatureReference>
+</ItemGroup>
+```
+
+The `ReqnrollFeatureReference` item type (introduced in version 3.1.4) automatically:
+- Prevents Reqnroll from generating test code for these files (no duplicate tests)
+- Ensures the files are copied to the output directory
+- Makes the files available for the ScenarioCall.Generator to read during expansion
+
+**Legacy approach (pre-3.1.4):**
+```xml
+<ItemGroup>
+  <None Include="Features\SharedAuth\*.feature">
+    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+  </None>
+  <Compile Remove="Features\SharedAuth\*.feature.cs" />
+</ItemGroup>
+```
+
+**Benefits:**
+- Share authentication, data setup, and other common scenarios across multiple test projects
+- Maintain consistency across different test suites
+- Enable team collaboration with shared test libraries
+
 ## Requirements
 
 - .NET Standard 2.0 or higher
@@ -290,6 +336,11 @@ dotnet test --filter "TestMethodName"
 ```
 
 ## Changelog
+
+### Version 3.1.4
+- Added `ReqnrollFeatureReference` item type for simplified cross-project scenario references
+- Eliminates need for manual `<Compile Remove>` exclusions
+- Automatic handling of reference-only feature files
 
 ### Version 1.0.0
 - Initial release
