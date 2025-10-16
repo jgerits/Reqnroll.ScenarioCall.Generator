@@ -32,6 +32,16 @@ public class ScenarioCallTestGenerator : TestGenerator
         : base(reqnrollConfiguration, projectSettings, featureGeneratorRegistry, codeDomHelper, gherkinParserFactory, generatorInfo)
     {
         _projectSettings = projectSettings;
+        
+        // Debug: Log that the generator is being used
+        try
+        {
+            File.AppendAllText(Path.Combine(Path.GetTempPath(), "reqnroll_debug.log"),
+                $"[{DateTime.Now:HH:mm:ss}] ScenarioCallTestGenerator created\n");
+            File.AppendAllText(Path.Combine(Path.GetTempPath(), "reqnroll_debug.log"),
+                $"[{DateTime.Now:HH:mm:ss}]   - Project folder: {projectSettings?.ProjectFolder}\n");
+        }
+        catch { }
     }
 
     protected override ReqnrollDocument ParseContent(IGherkinParser parser, TextReader contentReader, ReqnrollDocumentLocation documentLocation)
@@ -126,6 +136,14 @@ public class ScenarioCallTestGenerator : TestGenerator
 
     private string PreprocessFeatureContent(string originalContent)
     {
+        // Debug: Log preprocessing
+        try
+        {
+            File.AppendAllText(Path.Combine(Path.GetTempPath(), "reqnroll_debug.log"),
+                $"[{DateTime.Now:HH:mm:ss}] PreprocessFeatureContent called\n");
+        }
+        catch { }
+        
         var dialect = GetDialect(originalContent);
         var lines = originalContent.Split('\n');
         var result = new StringBuilder();
@@ -153,6 +171,14 @@ public class ScenarioCallTestGenerator : TestGenerator
                 
             if (inScenario && IsScenarioCallStep(trimmedLine, dialect))
             {
+                // Debug: Log scenario call detection
+                try
+                {
+                    File.AppendAllText(Path.Combine(Path.GetTempPath(), "reqnroll_debug.log"),
+                        $"[{DateTime.Now:HH:mm:ss}]   - Found scenario call: {trimmedLine}\n");
+                }
+                catch { }
+                
                 var expandedSteps = ExpandScenarioCall(line, currentFeatureName, dialect);
                 if (expandedSteps != null)
                 {
@@ -348,37 +374,85 @@ public class ScenarioCallTestGenerator : TestGenerator
 
     private string FindFeatureFileContent(string featureName)
     {
-        if (_featureFileCache.TryGetValue(featureName, out var cachedContent))
+        // Debug: Write search attempt
+        try
         {
-            return cachedContent;
+            File.AppendAllText(Path.Combine(Path.GetTempPath(), "reqnroll_debug.log"),
+                $"[{DateTime.Now:HH:mm:ss}] FindFeatureFileContent: '{featureName}'\n");
         }
-
-        var currentDirectory = _projectSettings?.ProjectFolder ?? Environment.CurrentDirectory;
-        var featureFiles = GetFeatureFilePaths(currentDirectory);
-
-        foreach (var featureFile in featureFiles)
+        catch { }
+        
+        if (_featureFileCache.TryGetValue(featureName, out var cachedContent))
         {
             try
             {
-                var content = File.ReadAllText(featureFile);
-                // Try with language-aware extraction
-                var dialect = GetDialect(content);
-                var extractedFeatureName = ExtractFeatureNameFromContent(content, dialect);
-                    
-                if (extractedFeatureName != null)
+                File.AppendAllText(Path.Combine(Path.GetTempPath(), "reqnroll_debug.log"),
+                    $"[{DateTime.Now:HH:mm:ss}]   - Found in cache\n");
+            }
+            catch { }
+            return cachedContent;
+        }
+
+        // Try project folder first, fall back to current directory
+        var searchDirectories = new List<string>();
+        if (_projectSettings?.ProjectFolder != null)
+        {
+            searchDirectories.Add(_projectSettings.ProjectFolder);
+        }
+        searchDirectories.Add(Environment.CurrentDirectory);
+        
+        // Debug: Write search directories
+        try
+        {
+            File.AppendAllText(Path.Combine(Path.GetTempPath(), "reqnroll_debug.log"),
+                $"[{DateTime.Now:HH:mm:ss}]   - Project folder: {_projectSettings?.ProjectFolder ?? "null"}\n");
+            File.AppendAllText(Path.Combine(Path.GetTempPath(), "reqnroll_debug.log"),
+                $"[{DateTime.Now:HH:mm:ss}]   - Current dir: {Environment.CurrentDirectory}\n");
+        }
+        catch { }
+
+        foreach (var currentDirectory in searchDirectories.Distinct())
+        {
+            var featureFiles = GetFeatureFilePaths(currentDirectory);
+
+            foreach (var featureFile in featureFiles)
+            {
+                try
                 {
-                    _featureFileCache[extractedFeatureName] = content;
-                    if (string.Equals(extractedFeatureName, featureName, StringComparison.OrdinalIgnoreCase))
+                    var content = File.ReadAllText(featureFile);
+                    // Try with language-aware extraction
+                    var dialect = GetDialect(content);
+                    var extractedFeatureName = ExtractFeatureNameFromContent(content, dialect);
+                        
+                    if (extractedFeatureName != null)
                     {
-                        return content;
+                        _featureFileCache[extractedFeatureName] = content;
+                        if (string.Equals(extractedFeatureName, featureName, StringComparison.OrdinalIgnoreCase))
+                        {
+                            try
+                            {
+                                File.AppendAllText(Path.Combine(Path.GetTempPath(), "reqnroll_debug.log"),
+                                    $"[{DateTime.Now:HH:mm:ss}]   - Found '{featureName}' in {featureFile}\n");
+                            }
+                            catch { }
+                            return content;
+                        }
                     }
                 }
-            }
-            catch
-            {
-                // Continue with next file
+                catch
+                {
+                    // Continue with next file
+                }
             }
         }
+
+        // Debug: Not found
+        try
+        {
+            File.AppendAllText(Path.Combine(Path.GetTempPath(), "reqnroll_debug.log"),
+                $"[{DateTime.Now:HH:mm:ss}]   - Feature '{featureName}' NOT FOUND\n");
+        }
+        catch { }
 
         return null;
     }
@@ -409,6 +483,14 @@ public class ScenarioCallTestGenerator : TestGenerator
             Path.Combine(baseDirectory, "Tests")
         };
 
+        // Debug: Write search info
+        try
+        {
+            File.AppendAllText(Path.Combine(Path.GetTempPath(), "reqnroll_debug.log"),
+                $"[{DateTime.Now:HH:mm:ss}] GetFeatureFilePaths base: {baseDirectory}\n");
+        }
+        catch { }
+
         foreach (var searchPath in searchPaths)
         {
             if (Directory.Exists(searchPath))
@@ -419,6 +501,20 @@ public class ScenarioCallTestGenerator : TestGenerator
 
         // Add feature files from referenced projects
         var referencedProjectPaths = GetReferencedProjectPaths(baseDirectory);
+        
+        // Debug: Write referenced projects
+        try
+        {
+            File.AppendAllText(Path.Combine(Path.GetTempPath(), "reqnroll_debug.log"),
+                $"[{DateTime.Now:HH:mm:ss}] Found {referencedProjectPaths.Count()} project references\n");
+            foreach (var proj in referencedProjectPaths)
+            {
+                File.AppendAllText(Path.Combine(Path.GetTempPath(), "reqnroll_debug.log"),
+                    $"[{DateTime.Now:HH:mm:ss}]   - {proj}\n");
+            }
+        }
+        catch { }
+        
         foreach (var referencedProjectPath in referencedProjectPaths)
         {
             var referencedProjectDir = Path.GetDirectoryName(referencedProjectPath);
@@ -441,6 +537,14 @@ public class ScenarioCallTestGenerator : TestGenerator
                 }
             }
         }
+
+        // Debug: Write feature files found
+        try
+        {
+            File.AppendAllText(Path.Combine(Path.GetTempPath(), "reqnroll_debug.log"),
+                $"[{DateTime.Now:HH:mm:ss}] Found {featureFiles.Count} feature files total\n");
+        }
+        catch { }
 
         return featureFiles.Distinct();
     }

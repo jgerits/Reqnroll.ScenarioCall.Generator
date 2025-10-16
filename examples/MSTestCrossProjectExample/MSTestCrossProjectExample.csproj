@@ -26,18 +26,12 @@
     
 
   <ItemGroup>
-    <Folder Include="..\..\Reqnroll.ScenarioCall.Generator\bin\Debug\netstandard2.0\">
-      <Link>netstandard2.0</Link>
-    </Folder>
-  </ItemGroup>
-
-  <ItemGroup>
-    <ProjectReference Include="..\SharedAuthLibrary\SharedAuthLibrary.csproj" />
+    <ProjectReference Include="../SharedAuthLibrary/SharedAuthLibrary.csproj" />
   </ItemGroup>
 
   <ItemGroup>
     <!-- Register the generator plugin for Reqnroll code generation -->
-    <ReqnrollGeneratorPlugins Include="$(MSBuildProjectDirectory)\..\..\Reqnroll.ScenarioCall.Generator\bin\$(Configuration)\netstandard2.0\Reqnroll.ScenarioCall.Generator.dll" />
+    <ReqnrollGeneratorPlugins Include="$(MSBuildProjectDirectory)/../../Reqnroll.ScenarioCall.Generator/bin/$(Configuration)/netstandard2.0/Reqnroll.ScenarioCall.Generator.dll" />
   </ItemGroup>
 
 </Project>
