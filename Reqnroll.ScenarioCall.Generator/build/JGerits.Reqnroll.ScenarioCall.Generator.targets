@@ -1,30 +1,63 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <!-- 
+      Convention-based automatic exclusion of reference-only feature files.
+      Set to 'false' to disable automatic exclusion and use only explicit ReqnrollFeatureReference items.
+      
+      By default, feature files in subdirectories matching these patterns are excluded from code generation:
+      - **/Shared*/**/*.feature
+      - **/Reference*/**/*.feature  
+      - **/*Lib/**/*.feature
+      
+      You can customize the patterns using ReqnrollExcludeFeaturePatterns property.
+    -->
+    <ReqnrollAutoExcludeReferenceFeatures Condition="'$(ReqnrollAutoExcludeReferenceFeatures)' == ''">true</ReqnrollAutoExcludeReferenceFeatures>
+    
+    <!-- Default exclusion patterns (semicolon-separated) -->
+    <ReqnrollExcludeFeaturePatterns Condition="'$(ReqnrollExcludeFeaturePatterns)' == ''">**/Shared*/**;**/Reference*/**;**/*Lib/**</ReqnrollExcludeFeaturePatterns>
+  </PropertyGroup>
+
   <ItemGroup>
     <!-- Register the generator plugin for Reqnroll code generation -->
     <ReqnrollGeneratorPlugins Include="$(MSBuildThisFileDirectory)..\lib\netstandard2.0\Reqnroll.ScenarioCall.Generator.dll" />
   </ItemGroup>
 
   <!-- 
-    Handle ReqnrollFeatureReference items: feature files that are only used for scenario call expansion,
-    not for generating test code in the current project.
+    Handle reference-only feature files using two approaches:
     
-    Usage in .csproj:
-    <ItemGroup>
-      <ReqnrollFeatureReference Include="Features\SharedAuth\*.feature">
-        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      </ReqnrollFeatureReference>
-    </ItemGroup>
+    1. Explicit (ReqnrollFeatureReference items):
+       <ReqnrollFeatureReference Include="Features\SharedAuth\*.feature">
+         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+       </ReqnrollFeatureReference>
+    
+    2. Convention-based (automatic, based on folder patterns):
+       Feature files in folders matching patterns like Shared*, Reference*, *Lib are automatically excluded.
+       Set ReqnrollAutoExcludeReferenceFeatures=false to disable this.
   -->
   <Target Name="HandleReqnrollFeatureReferences" BeforeTargets="BeforeUpdateFeatureFilesInProject">
     <ItemGroup>
-      <!-- Remove ReqnrollFeatureReference items from ReqnrollFeatureFiles to prevent code generation -->
+      <!-- Explicit: Remove manually specified reference-only feature files -->
       <ReqnrollFeatureFiles Remove="@(ReqnrollFeatureReference)" Condition="'@(ReqnrollFeatureReference)' != ''" />
-      
-      <!-- Add ReqnrollFeatureReference items as None items instead, so they're still copied to output -->
       <None Include="@(ReqnrollFeatureReference)" Condition="'@(ReqnrollFeatureReference)' != ''">
         <CopyToOutputDirectory>%(ReqnrollFeatureReference.CopyToOutputDirectory)</CopyToOutputDirectory>
         <Visible>%(ReqnrollFeatureReference.Visible)</Visible>
+      </None>
+      
+      <!-- Convention-based: Automatically exclude features in specific subdirectories -->
+      <_AutoExcludedFeatures Include="@(ReqnrollFeatureFiles)" 
+        Condition="'$(ReqnrollAutoExcludeReferenceFeatures)' == 'true' AND (
+                   $([System.String]::Copy('%(Identity)').Contains('\Shared')) OR
+                   $([System.String]::Copy('%(Identity)').Contains('/Shared')) OR
+                   $([System.String]::Copy('%(Identity)').Contains('\Reference')) OR
+                   $([System.String]::Copy('%(Identity)').Contains('/Reference')) OR
+                   $([System.String]::Copy('%(Identity)').EndsWith('Lib\')) OR
+                   $([System.String]::Copy('%(Identity)').EndsWith('Lib/'))
+                   )" />
+      
+      <ReqnrollFeatureFiles Remove="@(_AutoExcludedFeatures)" />
+      <None Include="@(_AutoExcludedFeatures)" Condition="'@(_AutoExcludedFeatures)' != ''">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       </None>
     </ItemGroup>
   </Target>

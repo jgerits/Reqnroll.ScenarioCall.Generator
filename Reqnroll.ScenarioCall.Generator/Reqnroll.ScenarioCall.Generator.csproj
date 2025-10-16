@@ -21,7 +21,7 @@
         <RepositoryType>git</RepositoryType>
         <PackageReadmeFile>README.md</PackageReadmeFile>
         <PackageTags>reqnroll;specflow;bdd;gherkin;testing;scenario;generator;plugin</PackageTags>
-        <PackageReleaseNotes>Version 3.1.4: Added ReqnrollFeatureReference item type to simplify excluding reference-only feature files from code generation. No more manual Compile Remove required!</PackageReleaseNotes>
+        <PackageReleaseNotes>Version 3.1.4: Zero-configuration cross-project scenarios! Feature files in Shared*, Reference*, or *Lib folders are automatically excluded from code generation. Optional explicit control with ReqnrollFeatureReference item type.</PackageReleaseNotes>
         
         <!-- Build Configuration -->
         <GeneratePackageOnBuild>false</GeneratePackageOnBuild>

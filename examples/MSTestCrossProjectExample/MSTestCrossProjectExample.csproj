@@ -25,17 +25,6 @@
     
 
   <ItemGroup>
-    <!-- 
-      Mark SharedAuth feature files as references only.
-      The ReqnrollFeatureReference item type is provided by JGerits.Reqnroll.ScenarioCall.Generator
-      and automatically excludes these files from test code generation.
-    -->
-    <ReqnrollFeatureReference Include="Features\SharedAuth\*.feature">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </ReqnrollFeatureReference>
-  </ItemGroup>
-
-  <ItemGroup>
     <ProjectReference Include="..\SharedAuthLibrary\SharedAuthLibrary.csproj" />
   </ItemGroup>
 

@@ -240,35 +240,41 @@ See the [MSTestCrossProjectExample](examples/MSTestCrossProjectExample/) for a c
 </ItemGroup>
 ```
 
-2. **Copy or link the feature files** from the shared library and mark them as reference-only:
+2. **Copy or link the feature files** from the shared library to your project (e.g., into `Features\SharedAuth\`)
+
+3. **No additional configuration needed!** (version 3.1.4+)
+
+By default, feature files in subdirectories matching these patterns are automatically excluded from code generation:
+- `**/Shared*/` - e.g., `Features/SharedAuth/*.feature`
+- `**/Reference*/` - e.g., `Features/Reference/*.feature`  
+- `**/*Lib/` - e.g., `Features/AuthLib/*.feature`
+
+**Alternative: Explicit Control**
+
+If you prefer explicit control or need custom patterns, use the `ReqnrollFeatureReference` item type:
+
 ```xml
 <ItemGroup>
-  <!-- Mark SharedAuth feature files as references only (version 3.1.4+) -->
-  <ReqnrollFeatureReference Include="Features\SharedAuth\*.feature">
+  <ReqnrollFeatureReference Include="Features\MyCustomFolder\*.feature">
     <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
   </ReqnrollFeatureReference>
 </ItemGroup>
 ```
 
-The `ReqnrollFeatureReference` item type (introduced in version 3.1.4) automatically:
-- Prevents Reqnroll from generating test code for these files (no duplicate tests)
-- Ensures the files are copied to the output directory
-- Makes the files available for the ScenarioCall.Generator to read during expansion
+**Customization:**
 
-**Legacy approach (pre-3.1.4):**
+Disable automatic exclusion:
 ```xml
-<ItemGroup>
-  <None Include="Features\SharedAuth\*.feature">
-    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-  </None>
-  <Compile Remove="Features\SharedAuth\*.feature.cs" />
-</ItemGroup>
+<PropertyGroup>
+  <ReqnrollAutoExcludeReferenceFeatures>false</ReqnrollAutoExcludeReferenceFeatures>
+</PropertyGroup>
 ```
 
 **Benefits:**
 - Share authentication, data setup, and other common scenarios across multiple test projects
 - Maintain consistency across different test suites
 - Enable team collaboration with shared test libraries
+- **Zero configuration** when using conventional folder names (v3.1.4+)
 
 ## Requirements
 
@@ -338,7 +344,9 @@ dotnet test --filter "TestMethodName"
 ## Changelog
 
 ### Version 3.1.4
-- Added `ReqnrollFeatureReference` item type for simplified cross-project scenario references
+- Added **convention-based automatic exclusion** of reference-only feature files - zero configuration required!
+- Feature files in `Shared*/`, `Reference*/`, or `*Lib/` folders are automatically excluded from code generation
+- Added `ReqnrollFeatureReference` item type for explicit control when needed
 - Eliminates need for manual `<Compile Remove>` exclusions
 - Automatic handling of reference-only feature files
 

@@ -59,37 +59,37 @@ mkdir -p Features/SharedAuth
 cp ../SharedAuthLibrary/Features/*.feature Features/SharedAuth/
 ```
 
-Then mark them as reference-only using the `ReqnrollFeatureReference` item type:
+**That's it! No configuration needed.** (Version 3.1.4+)
+
+The plugin automatically detects that `Features/SharedAuth/` contains reference-only files (because the folder name contains "Shared") and excludes them from code generation.
+
+**How it works:**
+
+By default, feature files in subdirectories matching these patterns are automatically excluded:
+- `**/Shared*/` (like `Features/SharedAuth/`)
+- `**/Reference*/`  
+- `**/*Lib/`
+
+The automatic exclusion:
+- Prevents Reqnroll from generating test code for these files (no duplicate tests)
+- Ensures the files are copied to the output directory
+- Makes the files available for the ScenarioCall.Generator to read during expansion
+
+**Alternative: Explicit Control**
+
+If you need custom folder names or want explicit control, use the `ReqnrollFeatureReference` item type:
+
 ```xml
 <ItemGroup>
-  <!-- 
-    Mark SharedAuth feature files as references only.
-    The ReqnrollFeatureReference item type is provided by JGerits.Reqnroll.ScenarioCall.Generator
-    and automatically excludes these files from test code generation.
-  -->
-  <ReqnrollFeatureReference Include="Features\SharedAuth\*.feature">
+  <ReqnrollFeatureReference Include="Features\MyCustomFolder\*.feature">
     <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
   </ReqnrollFeatureReference>
 </ItemGroup>
 ```
 
-**That's it!** The `ReqnrollFeatureReference` item type (introduced in version 3.1.4) automatically:
-- Prevents Reqnroll from generating test code for these files
-- Ensures the files are still copied to the output directory
-- Makes the files available for the ScenarioCall.Generator to read during expansion
-
-**Why is this needed?**
-
-The Reqnroll.ScenarioCall.Generator plugin searches for feature files in the current project's directory structure during build-time code generation. By making the feature files available:
-
-1. **Discovery**: The generator can find the feature files to read scenario definitions
-2. **Expansion**: Scenario calls are expanded inline during code generation
-3. **Build-time Processing**: No runtime dependencies on external feature files
-4. **No Test Duplication**: The `ReqnrollFeatureReference` item prevents generating duplicate test methods for the copied feature files
-
 **Alternative: MSBuild Link**
 
-Alternatively, you can use MSBuild to include files without physically copying them:
+You can also use MSBuild to include files without physically copying them:
 
 ```xml
 <ItemGroup>
