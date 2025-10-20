@@ -744,15 +744,11 @@ Scenario: Create User
 
         // Act
         var result = _generator.PreprocessFeatureContent(originalContent);
-
-        // Output for inspection
-        System.Diagnostics.Debug.WriteLine("=== EXPANDED CONTENT ===");
-        System.Diagnostics.Debug.WriteLine(result);
-        System.Diagnostics.Debug.WriteLine("=== END ===");
         
-        // Assert - just check it contains the basics
+        // Assert - check that the datatable is properly expanded
         Assert.Contains("# Expanded from scenario call", result);
         Assert.Contains("Given I have the following user data:", result);
+        Assert.Contains("    | Field    | Value                |", result);
     }
 }
 
