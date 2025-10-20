@@ -277,6 +277,8 @@ public class ScenarioCallTestGenerator : TestGenerator
         var steps = new List<string>();
         var inTargetScenario = false;
         var foundFeature = false;
+        var collectingStepArgument = false;
+        var inDocString = false;
 
         foreach (var line in lines)
         {
@@ -294,7 +296,16 @@ public class ScenarioCallTestGenerator : TestGenerator
             if (StartsWithAnyKeyword(trimmedLine, dialect.ScenarioKeywords))
             {
                 var currentScenarioName = ExtractScenarioNameFromLine(trimmedLine, dialect.ScenarioKeywords);
+                
+                // If we were in the target scenario and hit a new scenario, stop
+                if (inTargetScenario)
+                {
+                    break;
+                }
+                
                 inTargetScenario = string.Equals(currentScenarioName, scenarioName, StringComparison.OrdinalIgnoreCase);
+                collectingStepArgument = false;
+                inDocString = false;
                 continue;
             }
 
@@ -304,9 +315,48 @@ public class ScenarioCallTestGenerator : TestGenerator
                 break;
             }
 
-            if (inTargetScenario && IsStepLine(trimmedLine, dialect))
+            if (inTargetScenario)
             {
-                steps.Add(trimmedLine);
+                // Check for doc string delimiters (""" or ```)
+                if (trimmedLine.StartsWith("\"\"\"") || trimmedLine.StartsWith("```"))
+                {
+                    inDocString = !inDocString;
+                    collectingStepArgument = true;
+                    steps.Add(trimmedLine);
+                    continue;
+                }
+
+                // If we're inside a doc string, collect all lines (trimmed)
+                if (inDocString)
+                {
+                    steps.Add(trimmedLine);
+                    continue;
+                }
+
+                // Check for datatable rows (lines starting with |)
+                // For datatables, we need to add extra indentation (4 spaces) to maintain Gherkin structure
+                if (trimmedLine.StartsWith("|"))
+                {
+                    collectingStepArgument = true;
+                    // Add 4 spaces for datatable indentation relative to steps
+                    steps.Add("    " + trimmedLine);
+                    continue;
+                }
+
+                // Check if this is a step line
+                if (IsStepLine(trimmedLine, dialect))
+                {
+                    collectingStepArgument = false;
+                    steps.Add(trimmedLine);
+                    continue;
+                }
+
+                // If we were collecting step arguments and hit a non-table, non-doc-string line
+                // that's also not a step, stop collecting arguments
+                if (collectingStepArgument && !string.IsNullOrWhiteSpace(trimmedLine))
+                {
+                    collectingStepArgument = false;
+                }
             }
         }
 

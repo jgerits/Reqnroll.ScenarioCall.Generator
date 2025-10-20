@@ -589,6 +589,167 @@ Scenario: Login
         Assert.Contains("that spans multiple lines", result);
         Assert.Contains("Given I log in", result);
     }
+
+    [Fact]
+    public void FindScenarioSteps_WithDataTable_IncludesDataTableRows()
+    {
+        // Arrange
+        SetupFeatureFileContent("DataTableTest", @"Feature: DataTableTest
+Scenario: Scenario with DataTable
+    Given I have the following user data:
+        | Field    | Value                |
+        | Username | jane.smith           |
+        | Email    | jane.smith@test.com  |
+        | Role     | Standard User        |
+    When I create the user
+    Then the user should be created");
+
+        // Act
+        var result = CallPrivateMethod<List<string>>(_generator, "FindScenarioSteps", "Scenario with DataTable", "DataTableTest");
+
+        // Assert
+        Assert.NotNull(result);
+        // Should include the step and all datatable rows with extra indentation
+        Assert.Contains("Given I have the following user data:", result);
+        Assert.Contains("    | Field    | Value                |", result);
+        Assert.Contains("    | Username | jane.smith           |", result);
+        Assert.Contains("    | Email    | jane.smith@test.com  |", result);
+        Assert.Contains("    | Role     | Standard User        |", result);
+        Assert.Contains("When I create the user", result);
+        Assert.Contains("Then the user should be created", result);
+    }
+
+    [Fact]
+    public void PreprocessFeatureContent_WithScenarioCallContainingDataTable_ExpandsWithDataTable()
+    {
+        // Arrange
+        var originalContent = @"Feature: Test Feature
+Scenario: Call Scenario with DataTable
+    Given I call scenario ""Create User"" from feature ""UserManagement""
+    Then the operation should be complete";
+
+        SetupFeatureFileContent("UserManagement", @"Feature: UserManagement
+Scenario: Create User
+    Given I have the following user data:
+        | Field    | Value                |
+        | Username | jane.smith           |
+        | Email    | jane.smith@test.com  |
+        | Role     | Standard User        |
+    When I create the user
+    Then the user should be created");
+
+        // Act
+        var result = _generator.PreprocessFeatureContent(originalContent);
+
+        // Assert
+        Assert.Contains("# Expanded from scenario call", result);
+        Assert.Contains("Given I have the following user data:", result);
+        Assert.Contains("    | Field    | Value                |", result);
+        Assert.Contains("    | Username | jane.smith           |", result);
+        Assert.Contains("    | Email    | jane.smith@test.com  |", result);
+        Assert.Contains("    | Role     | Standard User        |", result);
+        Assert.Contains("When I create the user", result);
+        Assert.Contains("Then the user should be created", result);
+        Assert.Contains("Then the operation should be complete", result);
+    }
+
+    [Fact]
+    public void FindScenarioSteps_WithDocString_IncludesDocStringContent()
+    {
+        // Arrange
+        SetupFeatureFileContent("DocStringTest", @"Feature: DocStringTest
+Scenario: Scenario with DocString
+    Given I have the following JSON data:
+        """"""
+        {
+            ""name"": ""John Doe"",
+            ""email"": ""john@example.com""
+        }
+        """"""
+    When I process the data
+    Then the data should be valid");
+
+        // Act
+        var result = CallPrivateMethod<List<string>>(_generator, "FindScenarioSteps", "Scenario with DocString", "DocStringTest");
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Contains("Given I have the following JSON data:", result);
+        Assert.Contains(@"""""""", result);
+        // Note: Lines are trimmed when collected
+        Assert.Contains(@"{", result);
+        Assert.Contains(@"""name"": ""John Doe"",", result);
+        Assert.Contains(@"""email"": ""john@example.com""", result);
+        Assert.Contains(@"}", result);
+        Assert.Contains("When I process the data", result);
+        Assert.Contains("Then the data should be valid", result);
+    }
+
+    [Fact]
+    public void PreprocessFeatureContent_WithScenarioCallContainingDocString_ExpandsWithDocString()
+    {
+        // Arrange
+        var originalContent = @"Feature: Test Feature
+Scenario: Call Scenario with DocString
+    Given I call scenario ""Process JSON"" from feature ""DataProcessing""
+    Then the result should be success";
+
+        SetupFeatureFileContent("DataProcessing", @"Feature: DataProcessing
+Scenario: Process JSON
+    Given I have the following JSON data:
+        """"""
+        {
+            ""id"": 123,
+            ""status"": ""active""
+        }
+        """"""
+    When I process the data
+    Then the data should be processed");
+
+        // Act
+        var result = _generator.PreprocessFeatureContent(originalContent);
+
+        // Assert
+        Assert.Contains("# Expanded from scenario call", result);
+        Assert.Contains("Given I have the following JSON data:", result);
+        Assert.Contains(@"""""""", result);
+        // Note: Lines are trimmed when collected
+        Assert.Contains(@"{", result);
+        Assert.Contains(@"""id"": 123,", result);
+        Assert.Contains(@"""status"": ""active""", result);
+        Assert.Contains(@"}", result);
+        Assert.Contains("When I process the data", result);
+        Assert.Contains("Then the data should be processed", result);
+        Assert.Contains("Then the result should be success", result);
+    }
+
+    [Fact]
+    public void PreprocessFeatureContent_WithScenarioCallContainingDataTable_OutputForInspection()
+    {
+        // Arrange
+        var originalContent = @"Feature: Test Feature
+Scenario: Call Scenario with DataTable
+    Given I call scenario ""Create User"" from feature ""UserManagement""
+    Then the operation should be complete";
+
+        SetupFeatureFileContent("UserManagement", @"Feature: UserManagement
+Scenario: Create User
+    Given I have the following user data:
+        | Field    | Value                |
+        | Username | jane.smith           |
+        | Email    | jane.smith@test.com  |
+        | Role     | Standard User        |
+    When I create the user
+    Then the user should be created");
+
+        // Act
+        var result = _generator.PreprocessFeatureContent(originalContent);
+        
+        // Assert - check that the datatable is properly expanded
+        Assert.Contains("# Expanded from scenario call", result);
+        Assert.Contains("Given I have the following user data:", result);
+        Assert.Contains("    | Field    | Value                |", result);
+    }
 }
 
 // Collection definition to disable parallel execution for tests that modify Environment.CurrentDirectory
