@@ -325,7 +325,7 @@ public class ScenarioCallFeatureGenerator : IFeatureGenerator
                     continue;
                 }
 
-                // If we're inside a doc string, collect all lines
+                // If we're inside a doc string, collect all lines (trimmed)
                 if (inDocString)
                 {
                     steps.Add(trimmedLine);
@@ -333,10 +333,12 @@ public class ScenarioCallFeatureGenerator : IFeatureGenerator
                 }
 
                 // Check for datatable rows (lines starting with |)
+                // For datatables, we need to add extra indentation (4 spaces) to maintain Gherkin structure
                 if (trimmedLine.StartsWith("|"))
                 {
                     collectingStepArgument = true;
-                    steps.Add(trimmedLine);
+                    // Add 4 spaces for datatable indentation relative to steps
+                    steps.Add("    " + trimmedLine);
                     continue;
                 }
 
