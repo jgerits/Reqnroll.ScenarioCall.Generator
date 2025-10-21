@@ -3,5 +3,7 @@
   <ItemGroup>
     <!-- Register the generator plugin for Reqnroll code generation -->
     <ReqnrollGeneratorPlugins Include="$(MSBuildThisFileDirectory)..\lib\netstandard2.0\Reqnroll.ScenarioCall.Generator.dll" />
+    <!-- Register the runtime plugin for step definition discovery (IDE support) -->
+    <ReqnrollPlugin Include="$(MSBuildThisFileDirectory)..\lib\netstandard2.0\Reqnroll.ScenarioCall.Generator.dll" />
   </ItemGroup>
 </Project>
