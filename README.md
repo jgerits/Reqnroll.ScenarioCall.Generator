@@ -262,9 +262,31 @@ Szenario: Neues Benutzerkonto erstellen
 - Reqnroll (compatible with SpecFlow migration)
 - MSBuild or .NET CLI for build-time processing
 
+## IDE Support
+
+### Visual Studio Extension
+
+The plugin works seamlessly with the [Reqnroll Visual Studio Extension](https://github.com/reqnroll/Reqnroll.VisualStudio). Step definitions for scenario call syntax are automatically registered, ensuring that:
+
+- Scenario call steps appear **recognized** (not purple/undefined) in Visual Studio
+- IntelliSense and navigation work correctly
+- Step definitions are properly discovered by the IDE
+
+**Supported syntax** (automatically recognized by the Visual Studio extension):
+```gherkin
+Given I call scenario "ScenarioName" from feature "FeatureName"
+When I call scenario "ScenarioName" from feature "FeatureName"
+Then I call scenario "ScenarioName" from feature "FeatureName"
+```
+
+The plugin provides step bindings for all supported languages (English, Dutch, German, French, Spanish). These bindings are no-op implementations that exist purely for IDE support - the actual scenario expansion happens at build time.
+
 ## Troubleshooting
 
 ### Common Issues
+
+**Issue**: Steps showing as purple (not found) in Visual Studio
+**Solution**: This issue has been resolved in version 3.1.6 and later. The plugin now includes runtime step definitions for scenario call syntax, which are automatically recognized by the Reqnroll Visual Studio Extension. Simply ensure you're using the latest version of the plugin.
 
 **Issue**: Scenario not found
 ```
