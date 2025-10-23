@@ -73,14 +73,10 @@ jobs:
       - name: Check for relevant changes
         id: check_changes
         run: |
-          # Get the list of changed files in the last commit
           CHANGED_FILES=$(git diff --name-only HEAD~1 HEAD || echo "")
           echo "Changed files: $CHANGED_FILES"
           
-          # Check if any relevant files were changed
           RELEVANT_CHANGE=false
-          
-          # List of patterns for files that should trigger a release
           RELEVANT_PATTERNS=(
             "^Reqnroll.ScenarioCall.Generator/.*\.cs$"
             "^Reqnroll.ScenarioCall.Generator/.*\.csproj$"
@@ -92,7 +88,6 @@ jobs:
             "^CHANGELOG.md$"
           )
           
-          # Check each changed file against relevant patterns
           for file in $CHANGED_FILES; do
             for pattern in "${RELEVANT_PATTERNS[@]}"; do
               if echo "$file" | grep -qE "$pattern"; then
@@ -108,7 +103,7 @@ jobs:
           if [ "$RELEVANT_CHANGE" = "false" ]; then
             echo "No relevant changes detected. Skipping release."
           else
-            echo "Relevant changes detected. Proceeding with release."
+            echo "Relevant changes detected. Proceeding with checks."
           fi
 
       - name: Setup .NET
@@ -117,64 +112,93 @@ jobs:
         with:
           dotnet-version: '8.0.x'
 
-      - name: Get current version
+      - name: Get package metadata
         if: steps.check_changes.outputs.relevant == 'true'
-        id: current_version
+        id: meta
         run: |
-          CURRENT_VERSION=$(grep -o '<Version>[^<]*</Version>' Reqnroll.ScenarioCall.Generator/Reqnroll.ScenarioCall.Generator.csproj | sed 's/<Version>\(.*\)<\/Version>/\1/')
+          CSPROJ="Reqnroll.ScenarioCall.Generator/Reqnroll.ScenarioCall.Generator.csproj"
+
+          CURRENT_VERSION=$(grep -o '<Version>[^<]*</Version>' "$CSPROJ" | sed 's/<Version>\(.*\)<\/Version>/\1/')
+          if [ -z "$CURRENT_VERSION" ]; then
+            echo "Could not determine <Version> from $CSPROJ"
+            exit 1
+          fi
+
+          PACKAGE_ID=$(grep -o '<PackageId>[^<]*</PackageId>' "$CSPROJ" | sed 's/<PackageId>\(.*\)<\/PackageId>/\1/')
+          if [ -z "$PACKAGE_ID" ]; then
+            # Fallback to project name when <PackageId> is not specified
+            PACKAGE_ID="Reqnroll.ScenarioCall.Generator"
+          fi
+
           echo "Current version: $CURRENT_VERSION"
+          echo "Package ID: $PACKAGE_ID"
           echo "version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
+          echo "package_id=$PACKAGE_ID" >> $GITHUB_OUTPUT
 
-      - name: Increment patch version
+      - name: Check if GitHub release exists for current version
         if: steps.check_changes.outputs.relevant == 'true'
-        id: new_version
+        id: release_check
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          CURRENT_VERSION="${{ steps.current_version.outputs.version }}"
-          MAJOR=$(echo $CURRENT_VERSION | cut -d. -f1)
-          MINOR=$(echo $CURRENT_VERSION | cut -d. -f2)
-          PATCH=$(echo $CURRENT_VERSION | cut -d. -f3)
-          NEW_PATCH=$((PATCH + 1))
-          NEW_VERSION="$MAJOR.$MINOR.$NEW_PATCH"
-          echo "New version: $NEW_VERSION"
-          echo "version=$NEW_VERSION" >> $GITHUB_OUTPUT
+          TAG="v${{ steps.meta.outputs.version }}"
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+            echo "Release $TAG exists."
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+            echo "Release $TAG does not exist."
+          fi
 
-      - name: Update version in project file
+      - name: Check if version exists on NuGet
         if: steps.check_changes.outputs.relevant == 'true'
+        id: nuget_check
         run: |
-          NEW_VERSION="${{ steps.new_version.outputs.version }}"
-          sed -i "s|<Version>[^<]*</Version>|<Version>$NEW_VERSION</Version>|g" Reqnroll.ScenarioCall.Generator/Reqnroll.ScenarioCall.Generator.csproj
-          sed -i "s|<AssemblyVersion>[^<]*</AssemblyVersion>|<AssemblyVersion>$NEW_VERSION</AssemblyVersion>|g" Reqnroll.ScenarioCall.Generator/Reqnroll.ScenarioCall.Generator.csproj
-          sed -i "s|<FileVersion>[^<]*</FileVersion>|<FileVersion>$NEW_VERSION</FileVersion>|g" Reqnroll.ScenarioCall.Generator/Reqnroll.ScenarioCall.Generator.csproj
+          PACKAGE_ID="${{ steps.meta.outputs.package_id }}"
+          VERSION="${{ steps.meta.outputs.version }}"
+          LOWER_ID=$(echo "$PACKAGE_ID" | tr '[:upper:]' '[:lower:]')
+
+          STATUS=$(curl -s -o /tmp/index.json -w "%{http_code}" "https://api.nuget.org/v3-flatcontainer/$LOWER_ID/index.json" || echo "000")
+          if [ "$STATUS" = "200" ] && grep -q "\"$VERSION\"" /tmp/index.json; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+            echo "NuGet package $PACKAGE_ID version $VERSION exists."
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+            echo "NuGet package $PACKAGE_ID version $VERSION does not exist."
+          fi
 
       - name: Restore dependencies
-        if: steps.check_changes.outputs.relevant == 'true'
+        if: steps.check_changes.outputs.relevant == 'true' && (steps.release_check.outputs.exists == 'false' || steps.nuget_check.outputs.exists == 'false')
         run: dotnet restore
 
       - name: Build solution
-        if: steps.check_changes.outputs.relevant == 'true'
+        if: steps.check_changes.outputs.relevant == 'true' && (steps.release_check.outputs.exists == 'false' || steps.nuget_check.outputs.exists == 'false')
         run: dotnet build --configuration Release --no-restore
 
       - name: Run tests
-        if: steps.check_changes.outputs.relevant == 'true'
+        if: steps.check_changes.outputs.relevant == 'true' && (steps.release_check.outputs.exists == 'false' || steps.nuget_check.outputs.exists == 'false')
         run: dotnet test --configuration Release --no-build --verbosity normal
 
       - name: Create NuGet package
-        if: steps.check_changes.outputs.relevant == 'true'
+        if: steps.check_changes.outputs.relevant == 'true' && (steps.release_check.outputs.exists == 'false' || steps.nuget_check.outputs.exists == 'false')
         run: dotnet pack --configuration Release --no-build --output ./artifacts
 
-      - name: Commit version bump
-        if: steps.check_changes.outputs.relevant == 'true'
-        run: |
-          git config --local user.email "action@github.com"
-          git config --local user.name "GitHub Action"
-          git add Reqnroll.ScenarioCall.Generator/Reqnroll.ScenarioCall.Generator.csproj
-          git commit -m "Bump version to ${{ steps.new_version.outputs.version }}" || exit 0
-          git push
+      # No version bump or commit. We only act on the existing version.
 
-      - name: Create Release
-        if: steps.check_changes.outputs.relevant == 'true'
+      - name: Publish to NuGet (only if missing)
+        if: steps.check_changes.outputs.relevant == 'true' && steps.nuget_check.outputs.exists == 'false'
         run: |
-          NEW_VERSION="${{ steps.new_version.outputs.version }}"
+          dotnet nuget push ./artifacts/*.nupkg \
+            --api-key ${{ secrets.NUGET_API_KEY }} \
+            --source https://api.nuget.org/v3/index.json \
+            --skip-duplicate
+
+      - name: Create GitHub Release (only if missing)
+        if: steps.check_changes.outputs.relevant == 'true' && steps.release_check.outputs.exists == 'false'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          NEW_VERSION="${{ steps.meta.outputs.version }}"
           gh release create "v$NEW_VERSION" \
             --title "Release v$NEW_VERSION" \
             --notes "Auto-generated release for version $NEW_VERSION
@@ -183,13 +207,3 @@ jobs:
           
           Changes in this release will be documented in the [CHANGELOG.md](https://github.com/jgerits/Reqnroll.ScenarioCall.Generator/blob/main/CHANGELOG.md)." \
             ./artifacts/*.nupkg
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Publish to NuGet
-        if: steps.check_changes.outputs.relevant == 'true'
-        run: |
-          dotnet nuget push ./artifacts/*.nupkg \
-            --api-key ${{ secrets.NUGET_API_KEY }} \
-            --source https://api.nuget.org/v3/index.json \
-            --skip-duplicate
