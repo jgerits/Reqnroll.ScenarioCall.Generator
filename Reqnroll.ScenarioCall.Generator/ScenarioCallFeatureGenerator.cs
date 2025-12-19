@@ -134,7 +134,9 @@ public class ScenarioCallFeatureGenerator : IFeatureGenerator
 
         var result = new StringBuilder();
         var inScenario = false;
+        var currentScenarioName = "";
         var currentFeatureName = ExtractFeatureNameFromContent(originalContent, dialect);
+        var callStack = new HashSet<string>();
 
         foreach (var line in lines)
         {
@@ -143,13 +145,19 @@ public class ScenarioCallFeatureGenerator : IFeatureGenerator
             if (StartsWithAnyKeyword(trimmedLine, dialect.ScenarioKeywords))
             {
                 inScenario = true;
+                currentScenarioName = ExtractScenarioNameFromLine(trimmedLine, dialect.ScenarioKeywords);
+                callStack.Clear();
+                if (!string.IsNullOrEmpty(currentScenarioName) && !string.IsNullOrEmpty(currentFeatureName))
+                {
+                    callStack.Add($"{currentFeatureName}:{currentScenarioName}");
+                }
                 result.AppendLine(line);
                 continue;
             }
                 
             if (inScenario && IsScenarioCallStep(trimmedLine, dialect))
             {
-                var expandedSteps = ExpandScenarioCall(trimmedLine, currentFeatureName, dialect);
+                var expandedSteps = ExpandScenarioCall(trimmedLine, currentFeatureName, dialect, originalContent, callStack);
                 if (expandedSteps != null)
                 {
                     result.Append(expandedSteps);
@@ -204,7 +212,7 @@ public class ScenarioCallFeatureGenerator : IFeatureGenerator
         return false;
     }
 
-    private string ExpandScenarioCall(string callStepLine, string currentFeatureName, GherkinDialect dialect)
+    private string ExpandScenarioCall(string callStepLine, string currentFeatureName, GherkinDialect dialect, string currentFeatureContent, HashSet<string> callStack)
     {
         // Build a pattern that matches any step keyword in the current dialect
         var allStepKeywords = dialect.GivenStepKeywords
@@ -240,9 +248,16 @@ public class ScenarioCallFeatureGenerator : IFeatureGenerator
         
         var leadingWhitespace = callStepLine.Substring(0, callStepLine.Length - callStepLine.TrimStart().Length);
 
+        // Check for recursion
+        var callKey = $"{featureName}:{scenarioName}";
+        if (callStack.Contains(callKey))
+        {
+            return $"{leadingWhitespace}# Error: Circular reference detected - scenario \"{scenarioName}\" from feature \"{featureName}\" is already in the call chain\n";
+        }
+
         try
         {
-            var scenarioSteps = FindScenarioSteps(scenarioName, featureName);
+            var scenarioSteps = FindScenarioSteps(scenarioName, featureName, currentFeatureName, currentFeatureContent);
             if (scenarioSteps != null && scenarioSteps.Any())
             {
                 var result = new StringBuilder();
@@ -264,9 +279,21 @@ public class ScenarioCallFeatureGenerator : IFeatureGenerator
         return null;
     }
 
-    private List<string> FindScenarioSteps(string scenarioName, string featureName)
+    private List<string> FindScenarioSteps(string scenarioName, string featureName, string currentFeatureName, string currentFeatureContent)
     {
-        var featureContent = FindFeatureFileContent(featureName);
+        // Check if we're calling a scenario from the same feature
+        string featureContent;
+        if (string.Equals(featureName, currentFeatureName, StringComparison.OrdinalIgnoreCase))
+        {
+            // Use the current feature content for same-feature calls
+            featureContent = currentFeatureContent;
+        }
+        else
+        {
+            // Look up the feature file content for cross-feature calls
+            featureContent = FindFeatureFileContent(featureName);
+        }
+        
         if (featureContent == null) return null;
 
         var dialect = GetDialect(featureContent);
@@ -284,8 +311,8 @@ public class ScenarioCallFeatureGenerator : IFeatureGenerator
             // Check if we're in the right feature
             if (StartsWithAnyKeyword(trimmedLine, dialect.FeatureKeywords))
             {
-                var currentFeatureName = ExtractFeatureNameFromLine(trimmedLine, dialect.FeatureKeywords);
-                foundFeature = string.Equals(currentFeatureName, featureName, StringComparison.OrdinalIgnoreCase);
+                var currentFeatureNameInFile = ExtractFeatureNameFromLine(trimmedLine, dialect.FeatureKeywords);
+                foundFeature = string.Equals(currentFeatureNameInFile, featureName, StringComparison.OrdinalIgnoreCase);
                 continue;
             }
 
@@ -568,7 +595,17 @@ public class ScenarioCallFeatureGenerator : IFeatureGenerator
     private string ExpandScenarioCall(string callStepLine, string currentFeatureName)
     {
         var dialect = new GherkinDialectProvider("en").DefaultDialect;
-        return ExpandScenarioCall(callStepLine, currentFeatureName, dialect);
+        var callStack = new HashSet<string>();
+        // For backward compatibility, pass empty string as current feature content
+        // This will force lookup from file system
+        return ExpandScenarioCall(callStepLine, currentFeatureName, dialect, "", callStack);
+    }
+
+    private List<string> FindScenarioSteps(string scenarioName, string featureName)
+    {
+        // For backward compatibility, pass null for current feature name and empty for content
+        // This will force lookup from file system
+        return FindScenarioSteps(scenarioName, featureName, null, "");
     }
 
     public UnitTestFeatureGenerationResult GenerateUnitTestFixture(ReqnrollDocument document, string testClassName,
