@@ -242,12 +242,26 @@ public class ScenarioCallFeatureGenerator : IFeatureGenerator
 
         try
         {
+            var backgroundSteps = FindBackgroundSteps(featureName);
             var scenarioSteps = FindScenarioSteps(scenarioName, featureName);
+            
+            // Need at least scenario steps to expand
             if (scenarioSteps != null && scenarioSteps.Any())
             {
                 var result = new StringBuilder();
                 result.AppendLine($"{leadingWhitespace}# Expanded from scenario call: \"{scenarioName}\" from feature \"{featureName}\"");
+                
+                // Include Background steps if present
+                if (backgroundSteps != null && backgroundSteps.Any())
+                {
+                    result.AppendLine($"{leadingWhitespace}# Including Background steps from feature \"{featureName}\"");
+                    foreach (var step in backgroundSteps)
+                    {
+                        result.AppendLine($"{leadingWhitespace}{step}");
+                    }
+                }
                     
+                // Include Scenario steps
                 foreach (var step in scenarioSteps)
                 {
                     result.AppendLine($"{leadingWhitespace}{step}");
@@ -262,6 +276,95 @@ public class ScenarioCallFeatureGenerator : IFeatureGenerator
         }
 
         return null;
+    }
+
+    private List<string> FindBackgroundSteps(string featureName)
+    {
+        var featureContent = FindFeatureFileContent(featureName);
+        if (featureContent == null) return null;
+
+        var dialect = GetDialect(featureContent);
+        var lines = featureContent.Split('\n');
+        var steps = new List<string>();
+        var inBackground = false;
+        var foundFeature = false;
+        var collectingStepArgument = false;
+        var inDocString = false;
+
+        foreach (var line in lines)
+        {
+            var trimmedLine = line.Trim();
+
+            // Check if we're in the right feature
+            if (StartsWithAnyKeyword(trimmedLine, dialect.FeatureKeywords))
+            {
+                var currentFeatureName = ExtractFeatureNameFromLine(trimmedLine, dialect.FeatureKeywords);
+                foundFeature = string.Equals(currentFeatureName, featureName, StringComparison.OrdinalIgnoreCase);
+                continue;
+            }
+
+            if (!foundFeature) continue;
+
+            // Check for Background section
+            if (StartsWithAnyKeyword(trimmedLine, dialect.BackgroundKeywords))
+            {
+                inBackground = true;
+                collectingStepArgument = false;
+                inDocString = false;
+                continue;
+            }
+
+            // Stop if we hit a scenario or another major section
+            if (inBackground && (StartsWithAnyKeyword(trimmedLine, dialect.ScenarioKeywords) ||
+                                 StartsWithAnyKeyword(trimmedLine, dialect.FeatureKeywords)))
+            {
+                break;
+            }
+
+            if (inBackground)
+            {
+                // Check for doc string delimiters (""" or ```)
+                if (trimmedLine.StartsWith("\"\"\"") || trimmedLine.StartsWith("```"))
+                {
+                    inDocString = !inDocString;
+                    collectingStepArgument = true;
+                    steps.Add(trimmedLine);
+                    continue;
+                }
+
+                // If we're inside a doc string, collect all lines (trimmed)
+                if (inDocString)
+                {
+                    steps.Add(trimmedLine);
+                    continue;
+                }
+
+                // Check for datatable rows (lines starting with |)
+                if (trimmedLine.StartsWith("|"))
+                {
+                    collectingStepArgument = true;
+                    steps.Add("    " + trimmedLine);
+                    continue;
+                }
+
+                // Check if this is a step line
+                if (IsStepLine(trimmedLine, dialect))
+                {
+                    collectingStepArgument = false;
+                    steps.Add(trimmedLine);
+                    continue;
+                }
+
+                // If we were collecting step arguments and hit a non-table, non-doc-string line
+                // that's also not a step, stop collecting arguments
+                if (collectingStepArgument && !string.IsNullOrWhiteSpace(trimmedLine))
+                {
+                    collectingStepArgument = false;
+                }
+            }
+        }
+
+        return steps.Any() ? steps : null;
     }
 
     private List<string> FindScenarioSteps(string scenarioName, string featureName)

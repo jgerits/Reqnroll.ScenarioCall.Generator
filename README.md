@@ -296,7 +296,6 @@ Szenario: Neues Benutzerkonto erstellen
 - Scenario calls in `Background:` sections are not expanded (only in `Scenario:` sections)
 - Nested scenario calls are not recursively expanded (scenario calls within called scenarios remain as-is)
 - Parameters cannot be passed between called scenarios
-- Background steps are not included in scenario calls
 
 ## Contributing
 
