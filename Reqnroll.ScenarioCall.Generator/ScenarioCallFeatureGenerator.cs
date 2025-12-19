@@ -146,6 +146,8 @@ public class ScenarioCallFeatureGenerator : IFeatureGenerator
             {
                 inScenario = true;
                 currentScenarioName = ExtractScenarioNameFromLine(trimmedLine, dialect.ScenarioKeywords);
+                // Clear call stack for each new scenario - each scenario is processed independently
+                // to prevent recursion only within its own expansion, not across unrelated scenarios
                 callStack.Clear();
                 if (!string.IsNullOrEmpty(currentScenarioName) && !string.IsNullOrEmpty(currentFeatureName))
                 {
@@ -248,7 +250,9 @@ public class ScenarioCallFeatureGenerator : IFeatureGenerator
         
         var leadingWhitespace = callStepLine.Substring(0, callStepLine.Length - callStepLine.TrimStart().Length);
 
-        // Check for recursion
+        // Check for recursion - prevents direct self-reference
+        // Note: Since nested scenario calls are not recursively expanded (documented limitation),
+        // we don't need to add the called scenario to the stack or check for indirect circular references
         var callKey = $"{featureName}:{scenarioName}";
         if (callStack.Contains(callKey))
         {
@@ -574,6 +578,7 @@ public class ScenarioCallFeatureGenerator : IFeatureGenerator
     }
 
     // Backward-compatible wrapper methods for testing (default to English dialect)
+    // Note: These are private methods used only by unit tests and should not be used in production
     private static bool IsStepLine(string line)
     {
         var dialectProvider = new GherkinDialectProvider("en");
@@ -595,6 +600,8 @@ public class ScenarioCallFeatureGenerator : IFeatureGenerator
     private string ExpandScenarioCall(string callStepLine, string currentFeatureName)
     {
         var dialect = new GherkinDialectProvider("en").DefaultDialect;
+        // Create a fresh call stack for each test invocation
+        // This is acceptable for unit tests since they test individual method behavior
         var callStack = new HashSet<string>();
         // For backward compatibility, pass empty string as current feature content
         // This will force lookup from file system
