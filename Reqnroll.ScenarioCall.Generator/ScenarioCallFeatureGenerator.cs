@@ -17,6 +17,9 @@ public class ScenarioCallFeatureGenerator : IFeatureGenerator
     private readonly IFeatureGenerator _baseGenerator;
     private readonly Dictionary<string, string> _featureFileCache = new();
     private readonly Dictionary<string, GherkinDialect> _dialectCache = new();
+    
+    // Common Gherkin language codes to try when language directive is missing
+    private static readonly string[] CommonLanguages = { "en", "nl", "de", "fr", "es" };
 
     public ScenarioCallFeatureGenerator(IFeatureGenerator baseGenerator, ReqnrollDocument document)
     {
@@ -484,9 +487,8 @@ public class ScenarioCallFeatureGenerator : IFeatureGenerator
                 // If feature name extraction failed with detected dialect, try common languages
                 if (extractedFeatureName == null)
                 {
-                    // Try English, Dutch, German, French, Spanish
-                    var commonLanguages = new[] { "en", "nl", "de", "fr", "es" };
-                    foreach (var lang in commonLanguages)
+                    // Try common language dialects when language directive is missing
+                    foreach (var lang in CommonLanguages)
                     {
                         var dialectProvider = new GherkinDialectProvider(lang);
                         var testDialect = dialectProvider.DefaultDialect;
