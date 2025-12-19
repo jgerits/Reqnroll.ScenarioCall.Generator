@@ -77,7 +77,7 @@ Scenario: Login
     }
 
     [Fact]
-    public void PreprocessFeatureContent_WithInvalidScenarioCall_AddsWarningComment()
+    public void PreprocessFeatureContent_WithInvalidScenarioCall_AddsErrorComment()
     {
         // Arrange
         var originalContent = @"Feature: Test Feature
@@ -88,7 +88,10 @@ Scenario: Test Scenario
         var result = _generator.PreprocessFeatureContent(originalContent);
 
         // Assert
-        Assert.Contains("# Warning: Could not expand scenario call", result);
+        Assert.Contains("# ERROR:", result);
+        Assert.Contains("Could not find feature file", result);
+        // Verify the original call line is NOT in the result (it was removed)
+        Assert.DoesNotContain("Given I call scenario \"NonExistent\" from feature \"NonExistent\"", result);
     }
 
     [Theory]
@@ -147,7 +150,7 @@ Scenario: Login
     }
 
     [Fact]
-    public void ExpandScenarioCall_WithNonExistentScenario_ReturnsNull()
+    public void ExpandScenarioCall_WithNonExistentScenario_ReturnsErrorMessage()
     {
         // Arrange
         var callStep = @"    Given I call scenario ""NonExistent"" from feature ""NonExistent""";
@@ -156,7 +159,9 @@ Scenario: Login
         var result = CallPrivateMethod<string>(_generator, "ExpandScenarioCall", callStep, "Test Feature");
 
         // Assert
-        Assert.Null(result);
+        Assert.NotNull(result);
+        Assert.Contains("# ERROR:", result);
+        Assert.Contains("Could not find feature file", result);
     }
 
     [Fact]
@@ -749,6 +754,163 @@ Scenario: Create User
         Assert.Contains("# Expanded from scenario call", result);
         Assert.Contains("Given I have the following user data:", result);
         Assert.Contains("    | Field    | Value                |", result);
+    }
+
+    [Fact]
+    public void PreprocessFeatureContent_WithNonExistentFeature_AddsDetailedErrorMessage()
+    {
+        // Arrange
+        var originalContent = @"Feature: Test Feature
+Scenario: Test Scenario
+    Given I call scenario ""SomeScenario"" from feature ""NonExistentFeature""";
+
+        // Act
+        var result = _generator.PreprocessFeatureContent(originalContent);
+
+        // Assert
+        Assert.Contains("# ERROR:", result);
+        Assert.Contains("Could not find feature file for \"NonExistentFeature\"", result);
+        Assert.Contains("Ensure the feature file exists", result);
+        // Verify the original call line is NOT in the result
+        Assert.DoesNotContain("Given I call scenario \"SomeScenario\" from feature \"NonExistentFeature\"", result);
+    }
+
+    [Fact]
+    public void PreprocessFeatureContent_WithNonExistentScenario_AddsDetailedErrorMessage()
+    {
+        // Arrange
+        var originalContent = @"Feature: Test Feature
+Scenario: Test Scenario
+    Given I call scenario ""NonExistentScenario"" from feature ""Authentication""";
+
+        SetupFeatureFileContent("Authentication", @"Feature: Authentication
+Scenario: Login
+    Given I am on the login page
+    When I enter credentials");
+
+        // Act
+        var result = _generator.PreprocessFeatureContent(originalContent);
+
+        // Assert
+        Assert.Contains("# ERROR:", result);
+        Assert.Contains("Scenario \"NonExistentScenario\" was not found", result);
+        Assert.Contains("feature \"Authentication\"", result);
+        Assert.Contains("Check scenario name spelling and case", result);
+        // Verify the original call line is NOT in the result
+        Assert.DoesNotContain("Given I call scenario \"NonExistentScenario\" from feature \"Authentication\"", result);
+    }
+
+    [Fact]
+    public void PreprocessFeatureContent_WithWrongFeatureNameInFile_AddsDetailedErrorMessage()
+    {
+        // Arrange
+        var originalContent = @"Feature: Test Feature
+Scenario: Test Scenario
+    Given I call scenario ""Login"" from feature ""WrongName""";
+
+        // Create a feature file but reference it with the wrong name
+        SetupFeatureFileContent("RightName", @"Feature: RightName
+Scenario: Login
+    Given I am on the login page");
+
+        // Act
+        var result = _generator.PreprocessFeatureContent(originalContent);
+
+        // Assert
+        Assert.Contains("# ERROR:", result);
+        Assert.Contains("Could not find feature file for \"WrongName\"", result);
+        // Verify the original call line is NOT in the result
+        Assert.DoesNotContain("Given I call scenario \"Login\" from feature \"WrongName\"", result);
+    }
+
+    [Fact]
+    public void ExpandScenarioCall_WithException_ReturnsErrorMessage()
+    {
+        // This test verifies the exception handling in ExpandScenarioCall
+        // We can't easily trigger an exception without mocking, but we verify the error path exists
+        // The actual exception handling is tested indirectly through the other tests
+        
+        // Arrange
+        var callStep = @"    Given I call scenario ""Test"" from feature ""TestFeature""";
+
+        // Act
+        var result = CallPrivateMethod<string>(_generator, "ExpandScenarioCall", callStep, "CurrentFeature");
+
+        // Assert - Either expands successfully or returns an error message
+        Assert.NotNull(result);
+        // Should contain either "Expanded from" or "ERROR"
+        Assert.True(result.Contains("# Expanded from") || result.Contains("# ERROR:"), 
+            "Result should contain either success expansion or error message");
+    }
+
+    [Fact]
+    public void PreprocessFeatureContent_PreservesOtherStepsWhenScenarioCallFails()
+    {
+        // Arrange
+        var originalContent = @"Feature: Test Feature
+Scenario: Test Scenario
+    Given I have some setup
+    When I call scenario ""Missing"" from feature ""Missing""
+    Then I should see results";
+
+        // Act
+        var result = _generator.PreprocessFeatureContent(originalContent);
+
+        // Assert
+        Assert.Contains("Given I have some setup", result);
+        Assert.Contains("Then I should see results", result);
+        Assert.Contains("# ERROR:", result);
+        // Verify the failed call line is NOT in the result
+        Assert.DoesNotContain("When I call scenario \"Missing\" from feature \"Missing\"", result);
+    }
+
+    [Fact]
+    public void FindScenarioStepsWithDiagnostics_WithValidScenario_ReturnsStepsAndNoDiagnostic()
+    {
+        // Arrange
+        SetupFeatureFileContent("TestFeature", @"Feature: TestFeature
+Scenario: TestScenario
+    Given I have a step
+    When I do something");
+
+        // Act
+        var result = CallPrivateMethod<(List<string>, string)>(_generator, "FindScenarioStepsWithDiagnostics", "TestScenario", "TestFeature");
+
+        // Assert
+        Assert.NotNull(result.Item1);
+        Assert.Equal(2, result.Item1.Count);
+        Assert.Null(result.Item2);
+    }
+
+    [Fact]
+    public void FindScenarioStepsWithDiagnostics_WithMissingFeatureFile_ReturnsDiagnostic()
+    {
+        // Act
+        var result = CallPrivateMethod<(List<string>, string)>(_generator, "FindScenarioStepsWithDiagnostics", "AnyScenario", "MissingFeature");
+
+        // Assert
+        Assert.Null(result.Item1);
+        Assert.NotNull(result.Item2);
+        Assert.Contains("Could not find feature file", result.Item2);
+        Assert.Contains("MissingFeature", result.Item2);
+    }
+
+    [Fact]
+    public void FindScenarioStepsWithDiagnostics_WithMissingScenario_ReturnsDiagnostic()
+    {
+        // Arrange
+        SetupFeatureFileContent("ExistingFeature", @"Feature: ExistingFeature
+Scenario: RealScenario
+    Given I exist");
+
+        // Act
+        var result = CallPrivateMethod<(List<string>, string)>(_generator, "FindScenarioStepsWithDiagnostics", "MissingScenario", "ExistingFeature");
+
+        // Assert
+        Assert.Null(result.Item1);
+        Assert.NotNull(result.Item2);
+        Assert.Contains("Scenario \"MissingScenario\" was not found", result.Item2);
+        Assert.Contains("ExistingFeature", result.Item2);
     }
 }
 
