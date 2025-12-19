@@ -172,13 +172,23 @@ Scenario: Place Order as Authenticated User
 **Example:** See [examples/MSTestCrossProjectExample](examples/MSTestCrossProjectExample/) for a complete working example.
 
 ### Error Handling
-When a scenario call cannot be resolved, the plugin adds a warning comment instead of failing the build:
+When a scenario call cannot be resolved, the plugin provides detailed diagnostic messages to help you identify and fix the issue. The original undefined scenario call line is removed from the generated output to prevent "undefined step" errors.
 
+**Example 1: Feature not found**
 ```gherkin
-Scenario: Test with Missing Reference
-    Given I call scenario "NonExistent" from feature "Missing"
-    # Warning: Could not expand scenario call
+Scenario: Test with Missing Feature
+    Given I call scenario "SomeScenario" from feature "NonExistent"
+    # ERROR: Could not find feature file for "NonExistent". Ensure the feature file exists in the project or referenced projects.
 ```
+
+**Example 2: Scenario not found**
+```gherkin
+Scenario: Test with Missing Scenario
+    Given I call scenario "NonExistent" from feature "Authentication"
+    # ERROR: Scenario "NonExistent" was not found in feature "Authentication". Check scenario name spelling and case.
+```
+
+The plugin removes the original scenario call line and replaces it with a descriptive error comment, preventing the line from appearing as an "undefined step" (highlighted in purple) in your IDE.
 
 ### Nested Scenario Calls
 Scenarios can contain calls to other scenarios, enabling complex composition:
