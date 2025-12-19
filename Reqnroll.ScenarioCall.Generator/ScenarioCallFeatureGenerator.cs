@@ -454,9 +454,9 @@ public class ScenarioCallFeatureGenerator : IFeatureGenerator
         var steps = new List<string>();
         var inTargetScenario = false;
         var foundFeature = false;
+        var featureFound = false;
         var collectingStepArgument = false;
         var inDocString = false;
-        var featureFound = false;
 
         foreach (var line in lines)
         {
