@@ -14,6 +14,8 @@ namespace Reqnroll.ScenarioCall.Generator;
 
 public class ScenarioCallFeatureGenerator : IFeatureGenerator
 {
+    private const string CircularReferenceErrorFormat = "# Error: Circular reference detected - scenario \"{0}\" from feature \"{1}\" is already in the call chain";
+    
     private readonly IFeatureGenerator _baseGenerator;
     private readonly Dictionary<string, string> _featureFileCache = new();
     private readonly Dictionary<string, GherkinDialect> _dialectCache = new();
@@ -151,7 +153,7 @@ public class ScenarioCallFeatureGenerator : IFeatureGenerator
                 callStack.Clear();
                 if (!string.IsNullOrEmpty(currentScenarioName) && !string.IsNullOrEmpty(currentFeatureName))
                 {
-                    callStack.Add($"{currentFeatureName}:{currentScenarioName}");
+                    callStack.Add(CreateCallStackKey(currentFeatureName, currentScenarioName));
                 }
                 result.AppendLine(line);
                 continue;
@@ -253,10 +255,10 @@ public class ScenarioCallFeatureGenerator : IFeatureGenerator
         // Check for recursion - prevents direct self-reference
         // Note: Since nested scenario calls are not recursively expanded (documented limitation),
         // we don't need to add the called scenario to the stack or check for indirect circular references
-        var callKey = $"{featureName}:{scenarioName}";
+        var callKey = CreateCallStackKey(featureName, scenarioName);
         if (callStack.Contains(callKey))
         {
-            return $"{leadingWhitespace}# Error: Circular reference detected - scenario \"{scenarioName}\" from feature \"{featureName}\" is already in the call chain\n";
+            return $"{leadingWhitespace}{string.Format(CircularReferenceErrorFormat, scenarioName, featureName)}\n";
         }
 
         try
@@ -579,6 +581,13 @@ public class ScenarioCallFeatureGenerator : IFeatureGenerator
 
     // Backward-compatible wrapper methods for testing (default to English dialect)
     // Note: These are private methods used only by unit tests and should not be used in production
+    private static string CreateCallStackKey(string featureName, string scenarioName)
+    {
+        return $"{featureName}:{scenarioName}";
+    }
+
+    // Backward-compatible wrapper methods for testing (default to English dialect)
+    // Note: These are private methods used only by unit tests and should not be used in production
     private static bool IsStepLine(string line)
     {
         var dialectProvider = new GherkinDialectProvider("en");
@@ -601,7 +610,9 @@ public class ScenarioCallFeatureGenerator : IFeatureGenerator
     {
         var dialect = new GherkinDialectProvider("en").DefaultDialect;
         // Create a fresh call stack for each test invocation
-        // This is acceptable for unit tests since they test individual method behavior
+        // Note: Same-feature calls are not supported via this wrapper (empty current feature content),
+        // so the call stack provides limited recursion protection. This is acceptable for unit tests
+        // since they test individual method behavior in isolation.
         var callStack = new HashSet<string>();
         // For backward compatibility, pass empty string as current feature content
         // This will force lookup from file system
