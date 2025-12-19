@@ -287,6 +287,119 @@ Szenario: Login
         Assert.Contains("Und ich gebe mein Passwort ein", result);
     }
 
+    [Fact]
+    public void PreprocessFeatureContent_MissingLanguageDirectiveInCalledFeature_AddsWarning()
+    {
+        // Arrange - Dutch feature with directive calling a feature without directive
+        var originalContent = @"# language: nl
+Functionaliteit: Test Functionaliteit
+Scenario: Test Scenario
+    Gegeven ik roep scenario ""Inloggen"" aan uit functionaliteit ""Authenticatie""";
+
+        SetupFeatureFileContent("Authenticatie", @"Functionaliteit: Authenticatie
+Scenario: Inloggen
+    Gegeven ik ben op de inlogpagina
+    Als ik mijn inloggegevens invoer
+    Dan zou ik ingelogd moeten zijn");
+
+        // Act
+        var result = _generator.PreprocessFeatureContent(originalContent);
+
+        // Assert
+        Assert.Contains("# WARNING: Language directive missing in called feature 'Authenticatie'. Add '# language: nl' at the top of the feature file.", result);
+    }
+
+    [Fact]
+    public void PreprocessFeatureContent_LanguageMismatch_AddsWarning()
+    {
+        // Arrange - Dutch feature calling German feature
+        var originalContent = @"# language: nl
+Functionaliteit: Test Functionaliteit
+Scenario: Test Scenario
+    Gegeven ik roep scenario ""Login"" aan uit functionaliteit ""Authentifizierung""";
+
+        SetupFeatureFileContent("Authentifizierung", @"# language: de
+Funktionalität: Authentifizierung
+Szenario: Login
+    Angenommen ich bin auf der Login-Seite");
+
+        // Act
+        var result = _generator.PreprocessFeatureContent(originalContent);
+
+        // Assert
+        Assert.Contains("# WARNING: Language mismatch: calling feature uses 'nl' but called feature 'Authentifizierung' uses 'de'. Both feature files should use the same language directive.", result);
+    }
+
+    [Fact]
+    public void PreprocessFeatureContent_BothFeaturesHaveMatchingDirectives_NoWarning()
+    {
+        // Arrange - Both features have matching Dutch directives
+        var originalContent = @"# language: nl
+Functionaliteit: Test Functionaliteit
+Scenario: Test Scenario
+    Gegeven ik roep scenario ""Inloggen"" aan uit functionaliteit ""Authenticatie""";
+
+        SetupFeatureFileContent("Authenticatie", @"# language: nl
+Functionaliteit: Authenticatie
+Scenario: Inloggen
+    Gegeven ik ben op de inlogpagina");
+
+        // Act
+        var result = _generator.PreprocessFeatureContent(originalContent);
+
+        // Assert
+        Assert.DoesNotContain("# WARNING:", result);
+        Assert.Contains("# Expanded from scenario call", result);
+    }
+
+    [Fact]
+    public void PreprocessFeatureContent_EnglishCallingEnglishWithoutDirective_NoWarning()
+    {
+        // Arrange - Both features use English (default) without directive
+        var originalContent = @"Feature: Test Feature
+Scenario: Test Scenario
+    Given I call scenario ""Login"" from feature ""Authentication""";
+
+        SetupFeatureFileContent("Authentication", @"Feature: Authentication
+Scenario: Login
+    Given I am on the login page");
+
+        // Act
+        var result = _generator.PreprocessFeatureContent(originalContent);
+
+        // Assert
+        Assert.DoesNotContain("# WARNING:", result);
+        Assert.Contains("# Expanded from scenario call", result);
+    }
+
+    [Fact]
+    public void HasExplicitLanguageDirective_WithDirective_ReturnsTrue()
+    {
+        // Arrange
+        var content = @"# language: nl
+Functionaliteit: Test";
+
+        // Act
+        var hasDirective = CallPrivateStaticMethod<bool>(typeof(ScenarioCallFeatureGenerator), "HasExplicitLanguageDirective", content);
+
+        // Assert
+        Assert.True(hasDirective);
+    }
+
+    [Fact]
+    public void HasExplicitLanguageDirective_WithoutDirective_ReturnsFalse()
+    {
+        // Arrange
+        var content = @"Feature: Test
+Scenario: Test";
+
+        // Act
+        var hasDirective = CallPrivateStaticMethod<bool>(typeof(ScenarioCallFeatureGenerator), "HasExplicitLanguageDirective", content);
+
+        // Assert
+        Assert.False(hasDirective);
+    }
+
     private void SetupFeatureFileContent(string featureName, string content)
     {
         // Create or reuse a temporary feature directory for testing
