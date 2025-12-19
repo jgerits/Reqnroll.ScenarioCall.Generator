@@ -108,19 +108,20 @@ public class ScenarioCallFeatureGenerator : IFeatureGenerator
         var dialect = GetDialect(originalContent);
         var lines = originalContent.Split('\n');
 
-        // Fast path: if there are no scenario-call steps within Scenario blocks,
+        // Fast path: if there are no scenario-call steps within Scenario or Background blocks,
         // return the original content unchanged and just add a trailing newline.
         // This preserves the original line endings used in the content.
         var hasScenarioCall = false;
-        var scanInScenario = false;
+        var scanInScenarioOrBackground = false;
         foreach (var l in lines)
         {
             var t = l.Trim();
-            if (StartsWithAnyKeyword(t, dialect.ScenarioKeywords))
+            if (StartsWithAnyKeyword(t, dialect.ScenarioKeywords) || 
+                StartsWithAnyKeyword(t, dialect.BackgroundKeywords))
             {
-                scanInScenario = true;
+                scanInScenarioOrBackground = true;
             }
-            else if (scanInScenario && IsScenarioCallStep(t, dialect))
+            else if (scanInScenarioOrBackground && IsScenarioCallStep(t, dialect))
             {
                 hasScenarioCall = true;
                 break;
@@ -133,21 +134,22 @@ public class ScenarioCallFeatureGenerator : IFeatureGenerator
         }
 
         var result = new StringBuilder();
-        var inScenario = false;
+        var inScenarioOrBackground = false;
         var currentFeatureName = ExtractFeatureNameFromContent(originalContent, dialect);
 
         foreach (var line in lines)
         {
             var trimmedLine = line.Trim();
                 
-            if (StartsWithAnyKeyword(trimmedLine, dialect.ScenarioKeywords))
+            if (StartsWithAnyKeyword(trimmedLine, dialect.ScenarioKeywords) || 
+                StartsWithAnyKeyword(trimmedLine, dialect.BackgroundKeywords))
             {
-                inScenario = true;
+                inScenarioOrBackground = true;
                 result.AppendLine(line);
                 continue;
             }
                 
-            if (inScenario && IsScenarioCallStep(trimmedLine, dialect))
+            if (inScenarioOrBackground && IsScenarioCallStep(trimmedLine, dialect))
             {
                 var expandedSteps = ExpandScenarioCall(trimmedLine, currentFeatureName, dialect);
                 if (expandedSteps != null)
