@@ -165,12 +165,17 @@ public class ScenarioCallFeatureGenerator : IFeatureGenerator
                 if (expandedSteps != null)
                 {
                     result.Append(expandedSteps);
+                    // Don't add the original line if expansion was successful or returned an error message
                     continue; 
                 }
                 else
                 {
+                    // This should not happen anymore since ExpandScenarioCall now returns diagnostics
+                    // but keep as a fallback for unexpected scenarios
                     var leadingWhitespace = line.Substring(0, line.Length - line.TrimStart().Length);
-                    result.AppendLine($"{leadingWhitespace}# Warning: Could not expand scenario call");
+                    result.AppendLine($"{leadingWhitespace}# ERROR: Could not expand scenario call - unknown reason");
+                    // Don't add the original line to avoid undefined step
+                    continue;
                 }
             }
                 
@@ -284,9 +289,8 @@ public class ScenarioCallFeatureGenerator : IFeatureGenerator
         try
         {
             var backgroundSteps = includeBackground ? FindBackgroundSteps(featureName, currentFeatureName, currentFeatureContent) : null;
-            var scenarioSteps = FindScenarioSteps(scenarioName, featureName, currentFeatureName, currentFeatureContent);
+            var (scenarioSteps, diagnosticMessage) = FindScenarioStepsWithDiagnostics(scenarioName, featureName, currentFeatureName, currentFeatureContent);
             
-            // Need at least scenario steps to expand
             if (scenarioSteps != null && scenarioSteps.Any())
             {
                 var result = new StringBuilder();
@@ -310,10 +314,15 @@ public class ScenarioCallFeatureGenerator : IFeatureGenerator
                     
                 return result.ToString();
             }
+            else if (!string.IsNullOrEmpty(diagnosticMessage))
+            {
+                // Return diagnostic message instead of null to provide clear feedback
+                return $"{leadingWhitespace}# ERROR: {diagnosticMessage}\n";
+            }
         }
         catch (Exception ex)
         {
-            return $"{leadingWhitespace}# Error expanding scenario call: {ex.Message}\n";
+            return $"{leadingWhitespace}# ERROR: Exception during scenario call expansion - {ex.Message}\n";
         }
 
         return null;
@@ -420,7 +429,7 @@ public class ScenarioCallFeatureGenerator : IFeatureGenerator
         return steps.Any() ? steps : null;
     }
 
-    private List<string> FindScenarioSteps(string scenarioName, string featureName, string currentFeatureName, string currentFeatureContent)
+    private (List<string> steps, string diagnosticMessage) FindScenarioStepsWithDiagnostics(string scenarioName, string featureName, string currentFeatureName, string currentFeatureContent)
     {
         // Check if we're calling a scenario from the same feature
         string featureContent;
@@ -435,7 +444,10 @@ public class ScenarioCallFeatureGenerator : IFeatureGenerator
             featureContent = FindFeatureFileContent(featureName);
         }
         
-        if (featureContent == null) return null;
+        if (featureContent == null)
+        {
+            return (null, $"Could not find feature file for \"{featureName}\". Ensure the feature file exists in the project or referenced projects.");
+        }
 
         var dialect = GetDialect(featureContent);
         var lines = featureContent.Split('\n');
@@ -444,6 +456,7 @@ public class ScenarioCallFeatureGenerator : IFeatureGenerator
         var foundFeature = false;
         var collectingStepArgument = false;
         var inDocString = false;
+        var featureFound = false;
 
         foreach (var line in lines)
         {
@@ -454,6 +467,10 @@ public class ScenarioCallFeatureGenerator : IFeatureGenerator
             {
                 var currentFeatureNameInFile = ExtractFeatureNameFromLine(trimmedLine, dialect.FeatureKeywords);
                 foundFeature = string.Equals(currentFeatureNameInFile, featureName, StringComparison.OrdinalIgnoreCase);
+                if (foundFeature)
+                {
+                    featureFound = true;
+                }
                 continue;
             }
 
@@ -527,7 +544,17 @@ public class ScenarioCallFeatureGenerator : IFeatureGenerator
             }
         }
 
-        return steps.Any() ? steps : null;
+        if (!featureFound)
+        {
+            return (null, $"Feature \"{featureName}\" was not found in the feature file. Check feature name spelling and case.");
+        }
+
+        if (!steps.Any())
+        {
+            return (null, $"Scenario \"{scenarioName}\" was not found in feature \"{featureName}\". Check scenario name spelling and case.");
+        }
+
+        return (steps, null);
     }
 
     private string ExtractFeatureNameFromLine(string line, IEnumerable<string> featureKeywords)
@@ -752,11 +779,16 @@ public class ScenarioCallFeatureGenerator : IFeatureGenerator
         return ExpandScenarioCall(callStepLine, currentFeatureName, dialect, "", callStack);
     }
 
+    private List<string> FindScenarioSteps(string scenarioName, string featureName, string currentFeatureName, string currentFeatureContent)
+    {
+        return FindScenarioStepsWithDiagnostics(scenarioName, featureName, currentFeatureName, currentFeatureContent).steps;
+    }
+
     private List<string> FindScenarioSteps(string scenarioName, string featureName)
     {
         // For backward compatibility, pass null for current feature name and empty for content
         // This will force lookup from file system
-        return FindScenarioSteps(scenarioName, featureName, null, "");
+        return FindScenarioStepsWithDiagnostics(scenarioName, featureName, null, "").steps;
     }
 
     public UnitTestFeatureGenerationResult GenerateUnitTestFixture(ReqnrollDocument document, string testClassName,
