@@ -384,10 +384,9 @@ public class ScenarioCallFeatureGenerator : IFeatureGenerator
         var lines = featureContent.Split('\n');
         var steps = new List<string>();
         var inTargetScenario = false;
-        var foundFeature = false;
+        var featureFound = false;
         var collectingStepArgument = false;
         var inDocString = false;
-        var featureFound = false;
 
         foreach (var line in lines)
         {
@@ -397,15 +396,11 @@ public class ScenarioCallFeatureGenerator : IFeatureGenerator
             if (StartsWithAnyKeyword(trimmedLine, dialect.FeatureKeywords))
             {
                 var currentFeatureName = ExtractFeatureNameFromLine(trimmedLine, dialect.FeatureKeywords);
-                foundFeature = string.Equals(currentFeatureName, featureName, StringComparison.OrdinalIgnoreCase);
-                if (foundFeature)
-                {
-                    featureFound = true;
-                }
+                featureFound = string.Equals(currentFeatureName, featureName, StringComparison.OrdinalIgnoreCase);
                 continue;
             }
 
-            if (!foundFeature) continue;
+            if (!featureFound) continue;
 
             // Check for target scenario
             if (StartsWithAnyKeyword(trimmedLine, dialect.ScenarioKeywords))
