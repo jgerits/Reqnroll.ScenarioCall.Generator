@@ -152,8 +152,6 @@ public class ScenarioCallFeatureGenerator : IFeatureGenerator
     {
         var dialect = GetDialect(originalContent);
         var lines = originalContent.Split('\n');
-        var callingLanguage = dialect.Language;
-        var hasExplicitDirective = HasExplicitLanguageDirective(originalContent);
 
         // Fast path: if there are no scenario-call steps within Scenario blocks,
         // return the original content unchanged and just add a trailing newline.
@@ -182,12 +180,6 @@ public class ScenarioCallFeatureGenerator : IFeatureGenerator
         var result = new StringBuilder();
         var inScenario = false;
         var currentFeatureName = ExtractFeatureNameFromContent(originalContent, dialect);
-        
-        // Add warning if calling feature is non-English but has no language directive
-        if (callingLanguage != "en" && !hasExplicitDirective)
-        {
-            result.AppendLine($"# WARNING: Language directive missing. Add '# language: {callingLanguage}' at the top of this feature file.");
-        }
 
         foreach (var line in lines)
         {
