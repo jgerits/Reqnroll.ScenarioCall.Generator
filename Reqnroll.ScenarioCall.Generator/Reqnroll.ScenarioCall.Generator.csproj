@@ -5,9 +5,9 @@
         <LangVersion>latest</LangVersion>
         
         <!-- Version Information -->
-        <Version>3.2.1</Version>
-        <AssemblyVersion>3.2.0</AssemblyVersion>
-        <FileVersion>3.2.0</FileVersion>
+        <Version>3.3.0</Version>
+        <AssemblyVersion>3.3.0</AssemblyVersion>
+        <FileVersion>3.3.0</FileVersion>
         
         <!-- Package Metadata -->
         <PackageId>JGerits.Reqnroll.ScenarioCall.Generator</PackageId>
@@ -30,7 +30,24 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <PackageReference Include="Reqnroll.CustomPlugin" Version="3.2.1" />
+      <PackageReference Include="Reqnroll" Version="3.3.0" />
+      <PackageReference Include="Reqnroll.CustomPlugin" Version="3.3.0" />
+      <PackageReference Include="Reqnroll.Tools.MsBuild.Generation" Version="3.3.0" PrivateAssets="all" />
+    </ItemGroup>
+
+    <!-- Workaround for Reqnroll 3.3.0 breaking change: manually reference Generator assemblies -->
+    <PropertyGroup>
+      <ReqnrollToolsVersion>3.3.0</ReqnrollToolsVersion>
+    </PropertyGroup>
+    <ItemGroup>
+      <Reference Include="Reqnroll.Generator">
+        <HintPath>$(NuGetPackageRoot)reqnroll.tools.msbuild.generation\$(ReqnrollToolsVersion)\build\netstandard2.0\Reqnroll.Generator.dll</HintPath>
+        <Private>false</Private>
+      </Reference>
+      <Reference Include="Reqnroll.Parser">
+        <HintPath>$(NuGetPackageRoot)reqnroll.tools.msbuild.generation\$(ReqnrollToolsVersion)\build\netstandard2.0\Reqnroll.Parser.dll</HintPath>
+        <Private>false</Private>
+      </Reference>
     </ItemGroup>
 
     <ItemGroup>

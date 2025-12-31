@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.3.0] - 2024-12-31
+
+### Changed
+- **Updated to Reqnroll 3.3.0**: Updated all Reqnroll package references from 3.2.1 to 3.3.0
+  - Updated main generator plugin package (Reqnroll.CustomPlugin)
+  - Updated all test framework packages (Reqnroll.xUnit, Reqnroll.NUnit, Reqnroll.MSTest)
+  - Updated all integration test projects and examples
+- **Workaround for Reqnroll 3.3.0 packaging changes**: Added manual DLL references to work around breaking changes in Reqnroll.CustomPlugin 3.3.0 (PR #914) where Generator assemblies are no longer included in the package lib folder
+  - Added reference to Reqnroll.Tools.MsBuild.Generation package
+  - Added explicit references to Reqnroll.Generator.dll and Reqnroll.Parser.dll from the build tools package
+  - This is a temporary workaround until a proper solution is available for external generator plugins
+
+### Technical Details
+- All 62 unit tests pass successfully
+- All integration tests pass across xUnit, NUnit, and MSTest frameworks
+- Compatible with .NET 8.0, 9.0, and 10.0
+
+### Dependencies
+- Reqnroll.CustomPlugin 3.3.0
+- Reqnroll.Tools.MsBuild.Generation 3.3.0
+
 ### Added
 - **Automatic Cross-Project Feature Discovery**: The plugin now automatically discovers feature files from referenced projects
   - No manual file copying required
@@ -109,5 +130,6 @@ This ensures compatibility with the corresponding Reqnroll version while allowin
 
 ## Links
 
-- [Unreleased]: https://github.com/jgerits/Reqnroll.ScenarioCall.Generator/compare/v3.0.0...HEAD
+- [Unreleased]: https://github.com/jgerits/Reqnroll.ScenarioCall.Generator/compare/v3.3.0...HEAD
+- [3.3.0]: https://github.com/jgerits/Reqnroll.ScenarioCall.Generator/releases/tag/v3.3.0
 - [3.0.0]: https://github.com/jgerits/Reqnroll.ScenarioCall.Generator/releases/tag/v3.0.0
