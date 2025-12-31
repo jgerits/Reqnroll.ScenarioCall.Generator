@@ -36,7 +36,7 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '8.0.x'
+          dotnet-version: '10.0.x'
 
       - name: Restore dependencies
         run: dotnet restore
@@ -106,11 +106,11 @@ jobs:
             echo "Relevant changes detected. Proceeding with checks."
           fi
 
-      - name: Setup .NET
+       - name: Setup .NET
         if: steps.check_changes.outputs.relevant == 'true'
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '8.0.x'
+          dotnet-version: '10.0.x'
 
       - name: Get package metadata
         if: steps.check_changes.outputs.relevant == 'true'
