@@ -206,6 +206,10 @@ Scenario: Complete Login Flow
 
 The plugin supports all Gherkin languages that Reqnroll supports. Specify the language using the `# language:` directive at the top of your feature file.
 
+**Important**: When using non-English languages, both the calling and called feature files must have the `# language:` directive at the top. The plugin will emit warnings if:
+- A non-English calling feature references a feature file without a language directive
+- Two feature files involved in a scenario call have different language directives
+
 **Dutch Example (AuthenticatieNL.feature)**
 ```gherkin
 # language: nl
