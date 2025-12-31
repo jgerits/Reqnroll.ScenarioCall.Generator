@@ -22,6 +22,19 @@
     </PackageReference>
     <PackageReference Include="Moq" Version="4.20.72" />
     <PackageReference Include="Reqnroll.CustomPlugin" Version="3.3.0" />
+    <PackageReference Include="Reqnroll.Tools.MsBuild.Generation" Version="3.3.0" PrivateAssets="all" />
+  </ItemGroup>
+
+  <!-- Workaround for Reqnroll 3.3.0 breaking change: manually reference Generator assemblies -->
+  <ItemGroup>
+    <Reference Include="Reqnroll.Generator">
+      <HintPath>$(NuGetPackageRoot)reqnroll.tools.msbuild.generation\3.3.0\build\netstandard2.0\Reqnroll.Generator.dll</HintPath>
+      <Private>true</Private>
+    </Reference>
+    <Reference Include="Reqnroll.Parser">
+      <HintPath>$(NuGetPackageRoot)reqnroll.tools.msbuild.generation\3.3.0\build\netstandard2.0\Reqnroll.Parser.dll</HintPath>
+      <Private>true</Private>
+    </Reference>
   </ItemGroup>
 
   <ItemGroup>
