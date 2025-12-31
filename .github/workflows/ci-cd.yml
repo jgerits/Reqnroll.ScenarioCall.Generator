@@ -106,7 +106,7 @@ jobs:
             echo "Relevant changes detected. Proceeding with checks."
           fi
 
-       - name: Setup .NET
+      - name: Setup .NET
         if: steps.check_changes.outputs.relevant == 'true'
         uses: actions/setup-dotnet@v4
         with:
