@@ -26,13 +26,16 @@
   </ItemGroup>
 
   <!-- Workaround for Reqnroll 3.3.0 breaking change: manually reference Generator assemblies -->
+  <PropertyGroup>
+    <ReqnrollToolsVersion>3.3.0</ReqnrollToolsVersion>
+  </PropertyGroup>
   <ItemGroup>
     <Reference Include="Reqnroll.Generator">
-      <HintPath>$(NuGetPackageRoot)reqnroll.tools.msbuild.generation\3.3.0\build\netstandard2.0\Reqnroll.Generator.dll</HintPath>
+      <HintPath>$(NuGetPackageRoot)reqnroll.tools.msbuild.generation\$(ReqnrollToolsVersion)\build\netstandard2.0\Reqnroll.Generator.dll</HintPath>
       <Private>true</Private>
     </Reference>
     <Reference Include="Reqnroll.Parser">
-      <HintPath>$(NuGetPackageRoot)reqnroll.tools.msbuild.generation\3.3.0\build\netstandard2.0\Reqnroll.Parser.dll</HintPath>
+      <HintPath>$(NuGetPackageRoot)reqnroll.tools.msbuild.generation\$(ReqnrollToolsVersion)\build\netstandard2.0\Reqnroll.Parser.dll</HintPath>
       <Private>true</Private>
     </Reference>
   </ItemGroup>

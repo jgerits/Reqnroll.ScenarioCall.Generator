@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [3.3.0] - 2025-12-31
+## [3.3.0] - 2024-12-31
 
 ### Changed
 - **Updated to Reqnroll 3.3.0**: Updated all Reqnroll package references from 3.2.1 to 3.3.0
