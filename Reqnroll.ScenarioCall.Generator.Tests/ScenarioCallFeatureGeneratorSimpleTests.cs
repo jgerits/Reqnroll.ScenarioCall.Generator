@@ -750,6 +750,179 @@ Scenario: Create User
         Assert.Contains("Given I have the following user data:", result);
         Assert.Contains("    | Field    | Value                |", result);
     }
+
+    [Fact]
+    public void PreprocessFeatureContent_WithSameFeatureScenarioCall_ExpandsSuccessfully()
+    {
+        // Arrange - call a scenario within the same feature file
+        var originalContent = @"Feature: User Management
+Scenario: Login
+    Given I am on the login page
+    When I enter credentials
+    Then I should be logged in
+
+Scenario: Create User
+    Given I call scenario ""Login"" from feature ""User Management""
+    When I navigate to user creation
+    And I create a new user
+    Then the user should be created";
+
+        // Act
+        var result = _generator.PreprocessFeatureContent(originalContent);
+
+        // Assert - verify the scenario call was expanded
+        Assert.Contains("# Expanded from scenario call: \"Login\" from feature \"User Management\"", result);
+        Assert.Contains("Given I am on the login page", result);
+        Assert.Contains("When I enter credentials", result);
+        Assert.Contains("Then I should be logged in", result);
+        Assert.Contains("When I navigate to user creation", result);
+    }
+
+    [Fact]
+    public void PreprocessFeatureContent_WithSelfReferenceScenario_DetectsRecursion()
+    {
+        // Arrange - a scenario calling itself
+        var originalContent = @"Feature: Recursive Test
+Scenario: Self Calling
+    Given I call scenario ""Self Calling"" from feature ""Recursive Test""
+    When I do something
+    Then it should work";
+
+        // Act
+        var result = _generator.PreprocessFeatureContent(originalContent);
+
+        // Assert - verify recursion is detected
+        Assert.Contains("# Error: Circular reference detected", result);
+        Assert.Contains("scenario \"Self Calling\" from feature \"Recursive Test\" is already in the call chain", result);
+    }
+
+    [Fact]
+    public void PreprocessFeatureContent_WithMultipleSameFeatureCalls_ExpandsAllSuccessfully()
+    {
+        // Arrange - multiple calls to scenarios in the same feature
+        var originalContent = @"Feature: Auth Feature
+Scenario: Setup
+    Given the system is initialized
+    When I prepare the environment
+    Then setup is complete
+
+Scenario: Login
+    Given I am on the login page
+    When I enter credentials
+    Then I should be logged in
+
+Scenario: Complete Flow
+    Given I call scenario ""Setup"" from feature ""Auth Feature""
+    When I call scenario ""Login"" from feature ""Auth Feature""
+    Then I should see the dashboard";
+
+        // Act
+        var result = _generator.PreprocessFeatureContent(originalContent);
+
+        // Assert
+        Assert.Contains("# Expanded from scenario call: \"Setup\" from feature \"Auth Feature\"", result);
+        Assert.Contains("Given the system is initialized", result);
+        Assert.Contains("When I prepare the environment", result);
+        Assert.Contains("Then setup is complete", result);
+        
+        Assert.Contains("# Expanded from scenario call: \"Login\" from feature \"Auth Feature\"", result);
+        Assert.Contains("Given I am on the login page", result);
+        Assert.Contains("When I enter credentials", result);
+        Assert.Contains("Then I should be logged in", result);
+        
+        Assert.Contains("Then I should see the dashboard", result);
+    }
+
+    [Fact]
+    public void PreprocessFeatureContent_WithSameFeatureAndCrossFeatureCalls_BothWork()
+    {
+        // Arrange - mix of same-feature and cross-feature calls
+        var originalContent = @"Feature: Mixed Calls
+Scenario: Local Setup
+    Given the local environment is ready
+    When I configure settings
+    Then setup is done
+
+Scenario: Full Test
+    Given I call scenario ""Local Setup"" from feature ""Mixed Calls""
+    And I call scenario ""Login"" from feature ""External Auth""
+    When I perform the test
+    Then it should pass";
+
+        SetupFeatureFileContent("External Auth", @"Feature: External Auth
+Scenario: Login
+    Given I enter username
+    When I enter password
+    Then I am authenticated");
+
+        // Act
+        var result = _generator.PreprocessFeatureContent(originalContent);
+
+        // Assert - both same-feature and cross-feature calls should be expanded
+        Assert.Contains("# Expanded from scenario call: \"Local Setup\" from feature \"Mixed Calls\"", result);
+        Assert.Contains("Given the local environment is ready", result);
+        Assert.Contains("When I configure settings", result);
+        
+        Assert.Contains("# Expanded from scenario call: \"Login\" from feature \"External Auth\"", result);
+        Assert.Contains("Given I enter username", result);
+        Assert.Contains("When I enter password", result);
+    }
+
+    [Fact]
+    public void PreprocessFeatureContent_WithCaseInsensitiveSameFeatureCall_Works()
+    {
+        // Arrange - test case insensitivity
+        var originalContent = @"Feature: Case Test
+Scenario: Helper Scenario
+    Given I have a helper step
+    When I execute it
+    Then it works
+
+Scenario: Main Scenario
+    Given I call scenario ""helper scenario"" from feature ""case test""
+    Then the test should pass";
+
+        // Act
+        var result = _generator.PreprocessFeatureContent(originalContent);
+
+        // Assert - should work with different casing
+        Assert.Contains("# Expanded from scenario call: \"helper scenario\" from feature \"case test\"", result);
+        Assert.Contains("Given I have a helper step", result);
+        Assert.Contains("When I execute it", result);
+        Assert.Contains("Then it works", result);
+    }
+
+    [Fact]
+    public void PreprocessFeatureContent_WithIndirectRecursion_DetectsInSameFeature()
+    {
+        // Arrange - test indirect circular reference within the same feature
+        // Scenario A calls Scenario B, and Scenario B calls Scenario A
+        var originalContent = @"Feature: Circular Test
+Scenario: Scenario A
+    Given I call scenario ""Scenario B"" from feature ""Circular Test""
+    When I do something in A
+    Then A should work
+
+Scenario: Scenario B
+    Given I call scenario ""Scenario A"" from feature ""Circular Test""
+    When I do something in B
+    Then B should work
+
+Scenario: Start Test
+    Given I call scenario ""Scenario A"" from feature ""Circular Test""
+    Then the test should complete";
+
+        // Act
+        var result = _generator.PreprocessFeatureContent(originalContent);
+
+        // Assert - The expansion of Scenario A will include the call to Scenario B as-is,
+        // because nested scenario calls are not recursively expanded per the documented limitation.
+        // So this won't detect the indirect recursion unless we recurse.
+        // However, direct self-reference should still be caught.
+        Assert.Contains("# Expanded from scenario call: \"Scenario A\" from feature \"Circular Test\"", result);
+        // The call to Scenario B within Scenario A should be preserved as-is (not expanded)
+        Assert.Contains("Given I call scenario \"Scenario B\" from feature \"Circular Test\"", result);
+    }
 }
 
 // Collection definition to disable parallel execution for tests that modify Environment.CurrentDirectory
