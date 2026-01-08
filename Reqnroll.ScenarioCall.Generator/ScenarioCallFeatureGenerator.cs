@@ -153,12 +153,17 @@ public class ScenarioCallFeatureGenerator : IFeatureGenerator
                 if (expandedSteps != null)
                 {
                     result.Append(expandedSteps);
+                    // Don't add the original line if expansion was successful or returned an error message
                     continue; 
                 }
                 else
                 {
+                    // This should not happen anymore since ExpandScenarioCall now returns diagnostics
+                    // but keep as a fallback for unexpected scenarios
                     var leadingWhitespace = line.Substring(0, line.Length - line.TrimStart().Length);
-                    result.AppendLine($"{leadingWhitespace}# Warning: Could not expand scenario call");
+                    result.AppendLine($"{leadingWhitespace}# ERROR: Could not expand scenario call - unknown reason");
+                    // Don't add the original line to avoid undefined step
+                    continue;
                 }
             }
                 
@@ -242,7 +247,7 @@ public class ScenarioCallFeatureGenerator : IFeatureGenerator
 
         try
         {
-            var scenarioSteps = FindScenarioSteps(scenarioName, featureName);
+            var (scenarioSteps, diagnosticMessage) = FindScenarioStepsWithDiagnostics(scenarioName, featureName);
             if (scenarioSteps != null && scenarioSteps.Any())
             {
                 var result = new StringBuilder();
@@ -255,10 +260,15 @@ public class ScenarioCallFeatureGenerator : IFeatureGenerator
                     
                 return result.ToString();
             }
+            else if (!string.IsNullOrEmpty(diagnosticMessage))
+            {
+                // Return diagnostic message instead of null to provide clear feedback
+                return $"{leadingWhitespace}# ERROR: {diagnosticMessage}\n";
+            }
         }
         catch (Exception ex)
         {
-            return $"{leadingWhitespace}# Error expanding scenario call: {ex.Message}\n";
+            return $"{leadingWhitespace}# ERROR: Exception during scenario call expansion - {ex.Message}\n";
         }
 
         return null;
@@ -360,6 +370,117 @@ public class ScenarioCallFeatureGenerator : IFeatureGenerator
         }
 
         return steps.Any() ? steps : null;
+    }
+
+    private (List<string> steps, string diagnosticMessage) FindScenarioStepsWithDiagnostics(string scenarioName, string featureName)
+    {
+        var featureContent = FindFeatureFileContent(featureName);
+        if (featureContent == null)
+        {
+            return (null, $"Could not find feature file for \"{featureName}\". Ensure the feature file exists in the project or referenced projects.");
+        }
+
+        var dialect = GetDialect(featureContent);
+        var lines = featureContent.Split('\n');
+        var steps = new List<string>();
+        var inTargetScenario = false;
+        var featureFound = false;
+        var collectingStepArgument = false;
+        var inDocString = false;
+
+        foreach (var line in lines)
+        {
+            var trimmedLine = line.Trim();
+
+            // Check if we're in the right feature
+            if (StartsWithAnyKeyword(trimmedLine, dialect.FeatureKeywords))
+            {
+                var currentFeatureName = ExtractFeatureNameFromLine(trimmedLine, dialect.FeatureKeywords);
+                featureFound = string.Equals(currentFeatureName, featureName, StringComparison.OrdinalIgnoreCase);
+                continue;
+            }
+
+            if (!featureFound) continue;
+
+            // Check for target scenario
+            if (StartsWithAnyKeyword(trimmedLine, dialect.ScenarioKeywords))
+            {
+                var currentScenarioName = ExtractScenarioNameFromLine(trimmedLine, dialect.ScenarioKeywords);
+                
+                // If we were in the target scenario and hit a new scenario, stop
+                if (inTargetScenario)
+                {
+                    break;
+                }
+                
+                inTargetScenario = string.Equals(currentScenarioName, scenarioName, StringComparison.OrdinalIgnoreCase);
+                collectingStepArgument = false;
+                inDocString = false;
+                continue;
+            }
+
+            // Stop if we hit a feature keyword while in target scenario
+            if (inTargetScenario && StartsWithAnyKeyword(trimmedLine, dialect.FeatureKeywords))
+            {
+                break;
+            }
+
+            if (inTargetScenario)
+            {
+                // Check for doc string delimiters (""" or ```)
+                if (trimmedLine.StartsWith("\"\"\"") || trimmedLine.StartsWith("```"))
+                {
+                    inDocString = !inDocString;
+                    collectingStepArgument = true;
+                    steps.Add(trimmedLine);
+                    continue;
+                }
+
+                // If we're inside a doc string, collect all lines (trimmed)
+                if (inDocString)
+                {
+                    steps.Add(trimmedLine);
+                    continue;
+                }
+
+                // Check for datatable rows (lines starting with |)
+                // For datatables, we need to add extra indentation (4 spaces) to maintain Gherkin structure
+                if (trimmedLine.StartsWith("|"))
+                {
+                    collectingStepArgument = true;
+                    // Add 4 spaces for datatable indentation relative to steps
+                    steps.Add("    " + trimmedLine);
+                    continue;
+                }
+
+                // Check if this is a step line
+                if (IsStepLine(trimmedLine, dialect))
+                {
+                    collectingStepArgument = false;
+                    steps.Add(trimmedLine);
+                    continue;
+                }
+
+                // If we were collecting step arguments and hit a non-table, non-doc-string line
+                // that's also not a step, stop collecting arguments
+                if (collectingStepArgument && !string.IsNullOrWhiteSpace(trimmedLine))
+                {
+                    collectingStepArgument = false;
+                }
+            }
+        }
+
+        if (!featureFound)
+        {
+            return (null, $"Feature \"{featureName}\" was not found in the feature file. Check feature name spelling and case.");
+        }
+
+        if (!steps.Any())
+        {
+            return (null, $"Scenario \"{scenarioName}\" was not found in feature \"{featureName}\". Check scenario name spelling and case.");
+        }
+
+        return (steps, null);
     }
 
     private string ExtractFeatureNameFromLine(string line, IEnumerable<string> featureKeywords)
