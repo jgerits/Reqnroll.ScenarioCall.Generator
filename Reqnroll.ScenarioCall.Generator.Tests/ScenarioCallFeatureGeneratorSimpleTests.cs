@@ -416,11 +416,10 @@ Scenario: Base
     }
 
     [Fact]
-    public void PreprocessFeatureContent_WithScenarioCallInBackground_DoesNotExpand()
+    public void PreprocessFeatureContent_WithScenarioCallInBackground_ExpandsCorrectly()
     {
         // Arrange
-        // Note: The current implementation only expands scenario calls within Scenario blocks,
-        // not in Background sections.
+        // Scenario calls in Background sections should now be expanded
         var originalContent = @"Feature: Test Feature
 Background:
     Given I call scenario ""Setup"" from feature ""Common""
@@ -438,9 +437,145 @@ Scenario: Setup
         var result = _generator.PreprocessFeatureContent(originalContent);
 
         // Assert
-        // Background scenario calls are not expanded in the current implementation
-        Assert.Contains("Given I call scenario \"Setup\" from feature \"Common\"", result);
-        Assert.DoesNotContain("# Expanded from scenario call", result);
+        // Background scenario calls should be expanded
+        Assert.Contains("# Expanded from scenario call: \"Setup\" from feature \"Common\"", result);
+        Assert.Contains("Given the system is initialized", result);
+        Assert.Contains("And the database is ready", result);
+        Assert.DoesNotContain("Given I call scenario \"Setup\" from feature \"Common\"", result);
+    }
+
+    [Fact]
+    public void PreprocessFeatureContent_WithScenarioCallInBackgroundSameFeature_ExpandsCorrectly()
+    {
+        // Arrange
+        // Scenario calls in Background should work within the same feature
+        var originalContent = @"Feature: Test Feature
+Background:
+    Given I call scenario ""Common Setup"" from feature ""Test Feature""
+
+Scenario: Common Setup
+    Given the system is initialized
+    And the database is ready
+
+Scenario: Test Scenario
+    When I do something
+    Then it should work";
+
+        // Setup the feature file so it can be found during expansion
+        SetupFeatureFileContent("Test Feature", originalContent);
+
+        // Act
+        var result = _generator.PreprocessFeatureContent(originalContent);
+
+        // Assert
+        Assert.Contains("# Expanded from scenario call: \"Common Setup\" from feature \"Test Feature\"", result);
+        Assert.Contains("Given the system is initialized", result);
+        Assert.Contains("And the database is ready", result);
+    }
+
+    [Fact]
+    public void PreprocessFeatureContent_WithBackgroundAndScenarioExpansion_MaintainsCorrectOrder()
+    {
+        // Arrange
+        // Background steps should be expanded first, then scenario steps
+        var originalContent = @"Feature: Test Feature
+Background:
+    Given I call scenario ""Setup"" from feature ""Common""
+
+Scenario: Test Scenario
+    When I call scenario ""DoAction"" from feature ""Actions""
+    Then it should work";
+
+        SetupFeatureFileContent("Common", @"Feature: Common
+Scenario: Setup
+    Given the system is initialized");
+
+        SetupFeatureFileContent("Actions", @"Feature: Actions
+Scenario: DoAction
+    When I perform the action");
+
+        // Act
+        var result = _generator.PreprocessFeatureContent(originalContent);
+
+        // Assert
+        // Verify both expansions happened
+        Assert.Contains("# Expanded from scenario call: \"Setup\" from feature \"Common\"", result);
+        Assert.Contains("# Expanded from scenario call: \"DoAction\" from feature \"Actions\"", result);
+        Assert.Contains("Given the system is initialized", result);
+        Assert.Contains("When I perform the action", result);
+        Assert.Contains("Then it should work", result);
+        
+        // Verify order: Background expansion should appear before Scenario expansion
+        var backgroundIndex = result.IndexOf("# Expanded from scenario call: \"Setup\" from feature \"Common\"");
+        var scenarioIndex = result.IndexOf("# Expanded from scenario call: \"DoAction\" from feature \"Actions\"");
+        Assert.True(backgroundIndex < scenarioIndex, "Background expansion should appear before Scenario expansion");
+    }
+
+    [Fact]
+    public void PreprocessFeatureContent_WithBackgroundSharedAcrossScenarios_ExpandsForEachScenario()
+    {
+        // Arrange
+        // Background should be processed once and apply to all scenarios
+        var originalContent = @"Feature: Test Feature
+Background:
+    Given I call scenario ""Setup"" from feature ""Common""
+
+Scenario: First Test
+    When I do first action
+    Then it should work
+
+Scenario: Second Test
+    When I do second action
+    Then it should also work";
+
+        SetupFeatureFileContent("Common", @"Feature: Common
+Scenario: Setup
+    Given the system is initialized");
+
+        // Act
+        var result = _generator.PreprocessFeatureContent(originalContent);
+
+        // Assert
+        // Background expansion should happen once
+        Assert.Contains("# Expanded from scenario call: \"Setup\" from feature \"Common\"", result);
+        Assert.Contains("Given the system is initialized", result);
+        
+        // Both scenarios should be present
+        Assert.Contains("Scenario: First Test", result);
+        Assert.Contains("Scenario: Second Test", result);
+        Assert.Contains("When I do first action", result);
+        Assert.Contains("When I do second action", result);
+    }
+
+    [Fact]
+    public void PreprocessFeatureContent_WithMultipleScenarioCallsInBackground_ExpandsAll()
+    {
+        // Arrange
+        var originalContent = @"Feature: Test Feature
+Background:
+    Given I call scenario ""Setup"" from feature ""Common""
+    And I call scenario ""Auth"" from feature ""Security""
+
+Scenario: Test Scenario
+    When I do something
+    Then it should work";
+
+        SetupFeatureFileContent("Common", @"Feature: Common
+Scenario: Setup
+    Given the system is initialized");
+
+        SetupFeatureFileContent("Security", @"Feature: Security
+Scenario: Auth
+    Given I am authenticated");
+
+        // Act
+        var result = _generator.PreprocessFeatureContent(originalContent);
+
+        // Assert
+        Assert.Contains("# Expanded from scenario call: \"Setup\" from feature \"Common\"", result);
+        Assert.Contains("# Expanded from scenario call: \"Auth\" from feature \"Security\"", result);
+        Assert.Contains("Given the system is initialized", result);
+        Assert.Contains("Given I am authenticated", result);
     }
 
     [Fact]
