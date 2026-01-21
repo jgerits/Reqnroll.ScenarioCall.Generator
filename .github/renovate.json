@@ -1,0 +1,51 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:base"
+  ],
+  "schedule": [
+    "before 9am on Monday"
+  ],
+  "packageRules": [
+    {
+      "groupName": "NuGet minor and patch dependencies",
+      "groupSlug": "nuget-minor-patch",
+      "matchManagers": ["nuget"],
+      "matchUpdateTypes": ["minor", "patch"],
+      "matchDepTypes": ["dependencies"]
+    },
+    {
+      "groupName": "NuGet major dependencies",
+      "groupSlug": "nuget-major",
+      "matchManagers": ["nuget"],
+      "matchUpdateTypes": ["major"],
+      "matchDepTypes": ["dependencies"]
+    },
+    {
+      "groupName": "NuGet build/dev minor and patch dependencies",
+      "groupSlug": "nuget-build-dev-minor-patch",
+      "matchManagers": ["nuget"],
+      "matchUpdateTypes": ["minor", "patch"],
+      "matchDepTypes": ["devDependencies", "buildDependencies"]
+    },
+    {
+      "groupName": "NuGet build/dev major dependencies",
+      "groupSlug": "nuget-build-dev-major",
+      "matchManagers": ["nuget"],
+      "matchUpdateTypes": ["major"],
+      "matchDepTypes": ["devDependencies", "buildDependencies"]
+    },
+    {
+      "groupName": "GitHub Actions minor and patch updates",
+      "groupSlug": "github-actions-minor-patch",
+      "matchManagers": ["github-actions"],
+      "matchUpdateTypes": ["minor", "patch"]
+    },
+    {
+      "groupName": "GitHub Actions major updates",
+      "groupSlug": "github-actions-major",
+      "matchManagers": ["github-actions"],
+      "matchUpdateTypes": ["major"]
+    }
+  ]
+}
