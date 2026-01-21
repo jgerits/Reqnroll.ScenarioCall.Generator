@@ -31,7 +31,7 @@
 
     <ItemGroup>
       <PackageReference Include="Reqnroll" Version="3.3.2" />
-      <PackageReference Include="Reqnroll.CustomPlugin" Version="3.3.0" />
+      <PackageReference Include="Reqnroll.CustomPlugin" Version="3.3.2" />
       <PackageReference Include="Reqnroll.Tools.MsBuild.Generation" Version="3.3.0" PrivateAssets="all" />
     </ItemGroup>
 
