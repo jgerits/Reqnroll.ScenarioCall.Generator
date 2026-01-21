@@ -11,29 +11,13 @@
       "groupName": "NuGet minor and patch dependencies",
       "groupSlug": "nuget-minor-patch",
       "matchManagers": ["nuget"],
-      "matchUpdateTypes": ["minor", "patch"],
-      "matchDepTypes": ["dependencies"]
+      "matchUpdateTypes": ["minor", "patch"]
     },
     {
       "groupName": "NuGet major dependencies",
       "groupSlug": "nuget-major",
       "matchManagers": ["nuget"],
-      "matchUpdateTypes": ["major"],
-      "matchDepTypes": ["dependencies"]
-    },
-    {
-      "groupName": "NuGet build/dev minor and patch dependencies",
-      "groupSlug": "nuget-build-dev-minor-patch",
-      "matchManagers": ["nuget"],
-      "matchUpdateTypes": ["minor", "patch"],
-      "matchDepTypes": ["devDependencies", "buildDependencies"]
-    },
-    {
-      "groupName": "NuGet build/dev major dependencies",
-      "groupSlug": "nuget-build-dev-major",
-      "matchManagers": ["nuget"],
-      "matchUpdateTypes": ["major"],
-      "matchDepTypes": ["devDependencies", "buildDependencies"]
+      "matchUpdateTypes": ["major"]
     },
     {
       "groupName": "GitHub Actions minor and patch updates",
@@ -49,3 +33,4 @@
     }
   ]
 }
+
