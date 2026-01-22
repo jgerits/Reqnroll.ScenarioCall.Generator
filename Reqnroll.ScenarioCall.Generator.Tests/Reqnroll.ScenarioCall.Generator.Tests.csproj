@@ -27,7 +27,7 @@
 
   <!-- Workaround for Reqnroll 3.3.0 breaking change: manually reference Generator assemblies -->
   <PropertyGroup>
-    <ReqnrollToolsVersion>3.3.0</ReqnrollToolsVersion>
+    <ReqnrollToolsVersion>3.3.2</ReqnrollToolsVersion>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="Reqnroll.Generator">
