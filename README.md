@@ -31,6 +31,14 @@ And I call scenario "ScenarioName" from feature "FeatureName"
 But I call scenario "ScenarioName" from feature "FeatureName"
 ```
 
+To include Background steps from the target feature, add `with background`:
+
+```gherkin
+Given I call scenario "ScenarioName" from feature "FeatureName" with background
+```
+
+**Note:** By default, scenario calls do NOT include Background steps from the target feature. Use the `with background` syntax when you need the Background steps to be executed.
+
 ### Basic Example
 
 See the examples folder for complete working examples:
@@ -87,6 +95,49 @@ Scenario: Create New User Account
     When I click the logout button
     Then I should be logged out
 ```
+
+### Background Support Example
+
+When a target feature has a Background section, you can optionally include it using `with background`:
+
+**Authentication.feature**
+```gherkin
+Feature: Authentication
+Background:
+    Given the authentication system is initialized
+    And the user database is ready
+
+Scenario: Login
+    Given I am on the login page
+    When I enter valid credentials
+    Then I should be logged in successfully
+```
+
+**UserManagement.feature**
+```gherkin
+Feature: User Management
+
+Scenario: Create User with Background
+    Given I call scenario "Login" from feature "Authentication" with background
+    When I create a new user account
+    Then the user should be created successfully
+```
+
+**Generated Output (with background)**
+```gherkin
+Scenario: Create User with Background
+    # Expanded from scenario call: "Login" from feature "Authentication"
+    # Including Background steps from feature "Authentication"
+    Given the authentication system is initialized
+    And the user database is ready
+    Given I am on the login page
+    When I enter valid credentials
+    Then I should be logged in successfully
+    When I create a new user account
+    Then the user should be created successfully
+```
+
+**Note:** If you omit `with background`, only the scenario steps will be included, and the Background steps will be skipped.
 
 ## Installation
 
@@ -255,6 +306,25 @@ Szenario: Neues Benutzerkonto erstellen
 **Supported Languages**: English (en), Dutch (nl), German (de), French (fr), Spanish (es), and many more. See [Gherkin language reference](https://cucumber.io/docs/gherkin/languages/) for a complete list.
 
 **Mixed Language Support**: You can call scenarios from feature files written in different languages. The plugin automatically detects the language of each feature file.
+
+**Background Support Translations**:
+The `with background` phrase is automatically translated for each supported language:
+- **English**: `with background`
+- **Dutch**: `met achtergrond`
+- **German**: `mit Hintergrund`
+- **French**: `avec contexte`
+- **Spanish**: `con antecedentes`
+
+Example in German:
+```gherkin
+# language: de
+Funktionalität: Benutzerverwaltung
+
+Szenario: Benutzer mit Hintergrund erstellen
+    Angenommen ich rufe Szenario "Login mit gültigen Anmeldedaten" auf aus Funktionalität "Authentifizierung" mit Hintergrund
+    Wenn ich einen neuen Benutzer erstelle
+    Dann sollte der Benutzer erstellt werden
+```
 
 ## Requirements
 
