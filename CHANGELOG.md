@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.3.2] - 2026-01-22
+
+### Changed
+- **Updated package version to 3.3.2**: Updated package version to match Reqnroll 3.3.2
+  - Updated package Version, AssemblyVersion, and FileVersion from 3.3.0 to 3.3.2
+  - Updated ReqnrollToolsVersion from 3.3.0 to 3.3.2
+  - Updated Reqnroll package references in example projects from 3.3.0 to 3.3.2
+  - All 62 unit tests pass successfully
+
 ## [3.3.0] - 2024-12-31
 
 ### Changed
