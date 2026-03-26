@@ -750,6 +750,105 @@ Scenario: Create User
         Assert.Contains("Given I have the following user data:", result);
         Assert.Contains("    | Field    | Value                |", result);
     }
+
+    [Fact]
+    public void PreprocessFeatureContent_WithScenarioCallToFeatureWithBackground_IncludesBackgroundSteps()
+    {
+        // Arrange
+        var originalContent = @"Feature: Test Feature
+Scenario: Test Scenario
+    Given I call scenario ""Login"" from feature ""Authentication"" with background
+    Then I should be logged in successfully";
+
+        SetupFeatureFileContent("Authentication", @"Feature: Authentication
+Background:
+    Given the system is initialized
+    And the database is ready
+
+Scenario: Login
+    Given I am on the login page
+    When I enter credentials
+    Then I should be logged in");
+
+        // Act
+        var result = _generator.PreprocessFeatureContent(originalContent);
+
+        // Assert
+        Assert.Contains("# Expanded from scenario call: \"Login\" from feature \"Authentication\"", result);
+        Assert.Contains("# Including Background steps from feature \"Authentication\"", result);
+        // Background steps should be included
+        Assert.Contains("Given the system is initialized", result);
+        Assert.Contains("And the database is ready", result);
+        // Scenario steps should be included
+        Assert.Contains("Given I am on the login page", result);
+        Assert.Contains("When I enter credentials", result);
+        Assert.Contains("Then I should be logged in", result);
+        
+        // Verify order: Background steps should come before scenario steps
+        var indexBackground = result.IndexOf("Given the system is initialized");
+        var indexScenario = result.IndexOf("Given I am on the login page");
+        Assert.True(indexBackground < indexScenario, "Background steps should appear before scenario steps");
+    }
+
+    [Fact]
+    public void PreprocessFeatureContent_WithScenarioCallToFeatureWithoutBackground_WorksAsUsual()
+    {
+        // Arrange
+        var originalContent = @"Feature: Test Feature
+Scenario: Test Scenario
+    Given I call scenario ""SimpleAction"" from feature ""Simple""";
+
+        SetupFeatureFileContent("Simple", @"Feature: Simple
+Scenario: SimpleAction
+    Given I do something
+    When I do something else");
+
+        // Act
+        var result = _generator.PreprocessFeatureContent(originalContent);
+
+        // Assert
+        Assert.Contains("# Expanded from scenario call: \"SimpleAction\" from feature \"Simple\"", result);
+        // Should NOT contain background comment
+        Assert.DoesNotContain("# Including Background steps", result);
+        // Scenario steps should be included
+        Assert.Contains("Given I do something", result);
+        Assert.Contains("When I do something else", result);
+    }
+
+    [Fact]
+    public void PreprocessFeatureContent_WithScenarioCallWithoutBackgroundKeyword_DoesNotIncludeBackground()
+    {
+        // Arrange - Even though target feature has background, it should NOT be included without "with background"
+        var originalContent = @"Feature: Test Feature
+Scenario: Test Scenario
+    Given I call scenario ""Login"" from feature ""Authentication""
+    Then I should be logged in successfully";
+
+        SetupFeatureFileContent("Authentication", @"Feature: Authentication
+Background:
+    Given the system is initialized
+    And the database is ready
+
+Scenario: Login
+    Given I am on the login page
+    When I enter credentials
+    Then I should be logged in");
+
+        // Act
+        var result = _generator.PreprocessFeatureContent(originalContent);
+
+        // Assert
+        Assert.Contains("# Expanded from scenario call: \"Login\" from feature \"Authentication\"", result);
+        // Should NOT contain background comment
+        Assert.DoesNotContain("# Including Background steps", result);
+        // Background steps should NOT be included
+        Assert.DoesNotContain("Given the system is initialized", result);
+        Assert.DoesNotContain("And the database is ready", result);
+        // Scenario steps should be included
+        Assert.Contains("Given I am on the login page", result);
+        Assert.Contains("When I enter credentials", result);
+        Assert.Contains("Then I should be logged in", result);
+    }
 }
 
 // Collection definition to disable parallel execution for tests that modify Environment.CurrentDirectory
