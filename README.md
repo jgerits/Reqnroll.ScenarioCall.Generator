@@ -12,9 +12,11 @@ A powerful Reqnroll generator plugin that enables calling and embedding scenario
 - 🔄 **Scenario Reusability**: Call existing scenarios from any feature file
 - 🎯 **Inline Expansion**: Automatically expands scenario calls during test generation
 - 🗂️ **Cross-Feature Support**: Reference scenarios across different feature files
+- 📄 **Same-Feature Calls**: Call scenarios within the same feature file ✨ NEW!
 - 🚀 **Cross-Project Support**: Automatically discovers and calls scenarios from referenced projects
 - 🏗️ **Build-Time Processing**: No runtime overhead - scenarios are expanded at build time
 - 🛡️ **Error Handling**: Graceful handling of missing scenarios with clear warnings
+- 🔒 **Recursion Detection**: Automatically prevents circular scenario references ✨ NEW!
 - 📁 **Automatic Discovery**: Automatically finds feature files in referenced projects - no manual copying needed
 - 🌍 **Multi-Language Support**: Supports all Gherkin languages (English, German, French, Spanish, Dutch, and more)
 
@@ -191,6 +193,46 @@ MyProject/
 
 ## Advanced Usage
 
+### Same-Feature Scenario Calls ✨ NEW!
+
+Call scenarios within the same feature file - perfect for sharing common setup or reusable steps without creating separate files!
+
+**Example:**
+```gherkin
+Feature: User Management
+
+Scenario: Common Setup
+    Given the system is initialized
+    And the database is clean
+    And test data is loaded
+
+Scenario: Create User With Setup
+    Given I call scenario "Common Setup" from feature "User Management"
+    When I create a new user
+    Then the user should be created successfully
+```
+
+**How it works:**
+- Reference the current feature by name to call scenarios within the same file
+- The plugin automatically detects the current feature context
+- Recursion detection prevents infinite loops from self-referencing scenarios
+- Works seamlessly with cross-feature calls in the same test
+
+**Benefits:**
+- Reduce duplication within a feature file
+- Keep related scenarios organized together
+- Avoid creating separate feature files for simple reusable steps
+
+**Recursion Protection:**
+The plugin automatically detects and prevents circular references:
+```gherkin
+Scenario: Self Referencing (Not Allowed)
+    Given I call scenario "Self Referencing" from feature "User Management"
+    # Error: Circular reference detected - scenario "Self Referencing" from feature "User Management" is already in the call chain
+```
+
+**Example:** See [examples/BasicUsage/SameFeatureCalls.feature](examples/BasicUsage/SameFeatureCalls.feature) for a complete example.
+
 ### Cross-Project Scenario Calls ✨
 
 Call scenarios from other projects in your solution - perfect for sharing common test scenarios across multiple test projects!
@@ -346,7 +388,7 @@ Szenario: Benutzer mit Hintergrund erstellen
 - Check that the feature file is in a discoverable location
 
 **Issue**: Infinite recursion
-**Solution**: Avoid circular references between scenario calls. The plugin does not currently detect circular dependencies.
+**Solution**: The plugin now automatically detects and prevents circular references. If you see an error message like "Circular reference detected", check your scenario calls to ensure they don't create a loop.
 
 **Issue**: Feature file not found
 **Solution**: 
@@ -361,7 +403,8 @@ Szenario: Benutzer mit Hintergrund erstellen
 
 ## Limitations
 
-- Circular scenario call references are not detected
+- ~~Circular scenario call references are not detected~~ ✅ **FIXED**: Circular references are now automatically detected and prevented
+- ~~Calling scenarios within the same feature file is not supported~~ ✅ **FIXED**: Same-feature scenario calls are now fully supported
 - Scenario Outline templates cannot be called directly (use regular Scenario: instead)
 - Scenario calls in `Background:` sections are not expanded (only in `Scenario:` sections)
 - Nested scenario calls are not recursively expanded (scenario calls within called scenarios remain as-is)
