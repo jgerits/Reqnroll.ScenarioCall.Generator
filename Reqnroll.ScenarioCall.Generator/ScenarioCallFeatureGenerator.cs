@@ -14,8 +14,6 @@ namespace Reqnroll.ScenarioCall.Generator;
 
 public class ScenarioCallFeatureGenerator : IFeatureGenerator
 {
-    private const string CircularReferenceErrorFormat = "# Error: Circular reference detected - scenario \"{0}\" from feature \"{1}\" is already in the call chain";
-    
     private readonly IFeatureGenerator _baseGenerator;
     private readonly Dictionary<string, string> _featureFileCache = new();
     private readonly Dictionary<string, GherkinDialect> _dialectCache = new();
@@ -64,31 +62,31 @@ public class ScenarioCallFeatureGenerator : IFeatureGenerator
         return "en"; // Default to English
     }
 
-    private static List<(string callPhrase, string fromPhrase)> GetScenarioCallPhrases(string language)
+    private static List<(string callPhrase, string fromPhrase, string withBackgroundPhrase)> GetScenarioCallPhrases(string language)
     {
         // Return language-specific phrases for scenario calls
-        var phrases = new List<(string, string)>();
+        var phrases = new List<(string, string, string)>();
         
         switch (language.ToLowerInvariant())
         {
             case "nl": // Dutch
-                phrases.Add(("ik roep scenario", "aan uit functionaliteit"));
-                phrases.Add(("ik roep scenario", "aan van functionaliteit"));
+                phrases.Add(("ik roep scenario", "aan uit functionaliteit", "met achtergrond"));
+                phrases.Add(("ik roep scenario", "aan van functionaliteit", "met achtergrond"));
                 break;
             case "de": // German
-                phrases.Add(("ich rufe Szenario", "auf aus Funktionalität"));
-                phrases.Add(("ich rufe Szenario", "auf von Funktionalität"));
+                phrases.Add(("ich rufe Szenario", "auf aus Funktionalität", "mit Hintergrund"));
+                phrases.Add(("ich rufe Szenario", "auf von Funktionalität", "mit Hintergrund"));
                 break;
             case "fr": // French
-                phrases.Add(("j'appelle le scénario", "de la fonctionnalité"));
+                phrases.Add(("j'appelle le scénario", "de la fonctionnalité", "avec contexte"));
                 break;
             case "es": // Spanish
-                phrases.Add(("llamo al escenario", "de la característica"));
+                phrases.Add(("llamo al escenario", "de la característica", "con antecedentes"));
                 break;
         }
         
         // Always include English as fallback
-        phrases.Add(("I call scenario", "from feature"));
+        phrases.Add(("I call scenario", "from feature", "with background"));
         
         return phrases;
     }
@@ -199,10 +197,15 @@ public class ScenarioCallFeatureGenerator : IFeatureGenerator
         var scenarioCallPhrases = GetScenarioCallPhrases(dialect.Language);
         var patterns = new List<string>();
         
-        foreach (var (callPhrase, fromPhrase) in scenarioCallPhrases)
+        foreach (var (callPhrase, fromPhrase, withBackgroundPhrase) in scenarioCallPhrases)
         {
+            // Pattern without "with background"
             var pattern = $@"({keywordPattern})\s+{Regex.Escape(callPhrase)}\s+""([^""]+)""\s+{Regex.Escape(fromPhrase)}\s+""([^""]+)""";
             patterns.Add(pattern);
+            
+            // Pattern with "with background" (optional)
+            var patternWithBackground = $@"({keywordPattern})\s+{Regex.Escape(callPhrase)}\s+""([^""]+)""\s+{Regex.Escape(fromPhrase)}\s+""([^""]+)""\s+{Regex.Escape(withBackgroundPhrase)}";
+            patterns.Add(patternWithBackground);
         }
         
         foreach (var pattern in patterns)
@@ -234,9 +237,23 @@ public class ScenarioCallFeatureGenerator : IFeatureGenerator
         var scenarioCallPhrases = GetScenarioCallPhrases(dialect.Language);
         string scenarioName = null;
         string featureName = null;
+        bool includeBackground = false;
         
-        foreach (var (callPhrase, fromPhrase) in scenarioCallPhrases)
+        foreach (var (callPhrase, fromPhrase, withBackgroundPhrase) in scenarioCallPhrases)
         {
+            // Try pattern with "with background" first
+            var patternWithBackground = $@"({keywordPattern})\s+{Regex.Escape(callPhrase)}\s+""([^""]+)""\s+{Regex.Escape(fromPhrase)}\s+""([^""]+)""\s+{Regex.Escape(withBackgroundPhrase)}";
+            var matchWithBackground = Regex.Match(callStepLine, patternWithBackground, RegexOptions.IgnoreCase);
+            
+            if (matchWithBackground.Success)
+            {
+                scenarioName = matchWithBackground.Groups[2].Value;
+                featureName = matchWithBackground.Groups[3].Value;
+                includeBackground = true;
+                break;
+            }
+            
+            // Try pattern without "with background"
             var pattern = $@"({keywordPattern})\s+{Regex.Escape(callPhrase)}\s+""([^""]+)""\s+{Regex.Escape(fromPhrase)}\s+""([^""]+)""";
             var match = Regex.Match(callStepLine, pattern, RegexOptions.IgnoreCase);
             
@@ -244,6 +261,7 @@ public class ScenarioCallFeatureGenerator : IFeatureGenerator
             {
                 scenarioName = match.Groups[2].Value;
                 featureName = match.Groups[3].Value;
+                includeBackground = false;
                 break;
             }
         }
@@ -263,12 +281,26 @@ public class ScenarioCallFeatureGenerator : IFeatureGenerator
 
         try
         {
+            var backgroundSteps = includeBackground ? FindBackgroundSteps(featureName, currentFeatureName, currentFeatureContent) : null;
             var scenarioSteps = FindScenarioSteps(scenarioName, featureName, currentFeatureName, currentFeatureContent);
+            
+            // Need at least scenario steps to expand
             if (scenarioSteps != null && scenarioSteps.Any())
             {
                 var result = new StringBuilder();
                 result.AppendLine($"{leadingWhitespace}# Expanded from scenario call: \"{scenarioName}\" from feature \"{featureName}\"");
+                
+                // Include Background steps only if requested
+                if (includeBackground && backgroundSteps != null && backgroundSteps.Any())
+                {
+                    result.AppendLine($"{leadingWhitespace}# Including Background steps from feature \"{featureName}\"");
+                    foreach (var step in backgroundSteps)
+                    {
+                        result.AppendLine($"{leadingWhitespace}{step}");
+                    }
+                }
                     
+                // Include Scenario steps
                 foreach (var step in scenarioSteps)
                 {
                     result.AppendLine($"{leadingWhitespace}{step}");
@@ -283,6 +315,107 @@ public class ScenarioCallFeatureGenerator : IFeatureGenerator
         }
 
         return null;
+    }
+
+    private List<string> FindBackgroundSteps(string featureName, string currentFeatureName, string currentFeatureContent)
+    {
+        // Check if we're calling a scenario from the same feature
+        string featureContent;
+        if (string.Equals(featureName, currentFeatureName, StringComparison.OrdinalIgnoreCase))
+        {
+            // Use the current feature content for same-feature calls
+            featureContent = currentFeatureContent;
+        }
+        else
+        {
+            // Look up the feature file content for cross-feature calls
+            featureContent = FindFeatureFileContent(featureName);
+        }
+        
+        if (featureContent == null) return null;
+
+        var dialect = GetDialect(featureContent);
+        var lines = featureContent.Split('\n');
+        var steps = new List<string>();
+        var inBackground = false;
+        var foundFeature = false;
+        var collectingStepArgument = false;
+        var inDocString = false;
+
+        foreach (var line in lines)
+        {
+            var trimmedLine = line.Trim();
+
+            // Check if we're in the right feature
+            if (StartsWithAnyKeyword(trimmedLine, dialect.FeatureKeywords))
+            {
+                var currentFeatureName = ExtractFeatureNameFromLine(trimmedLine, dialect.FeatureKeywords);
+                foundFeature = string.Equals(currentFeatureName, featureName, StringComparison.OrdinalIgnoreCase);
+                continue;
+            }
+
+            if (!foundFeature) continue;
+
+            // Check for Background section
+            if (StartsWithAnyKeyword(trimmedLine, dialect.BackgroundKeywords))
+            {
+                inBackground = true;
+                collectingStepArgument = false;
+                inDocString = false;
+                continue;
+            }
+
+            // Stop if we hit a scenario or another major section
+            if (inBackground && (StartsWithAnyKeyword(trimmedLine, dialect.ScenarioKeywords) ||
+                                 StartsWithAnyKeyword(trimmedLine, dialect.FeatureKeywords)))
+            {
+                break;
+            }
+
+            if (inBackground)
+            {
+                // Check for doc string delimiters (""" or ```)
+                if (trimmedLine.StartsWith("\"\"\"") || trimmedLine.StartsWith("```"))
+                {
+                    inDocString = !inDocString;
+                    collectingStepArgument = true;
+                    steps.Add(trimmedLine);
+                    continue;
+                }
+
+                // If we're inside a doc string, collect all lines (trimmed)
+                if (inDocString)
+                {
+                    steps.Add(trimmedLine);
+                    continue;
+                }
+
+                // Check for datatable rows (lines starting with |)
+                if (trimmedLine.StartsWith("|"))
+                {
+                    collectingStepArgument = true;
+                    steps.Add("    " + trimmedLine);
+                    continue;
+                }
+
+                // Check if this is a step line
+                if (IsStepLine(trimmedLine, dialect))
+                {
+                    collectingStepArgument = false;
+                    steps.Add(trimmedLine);
+                    continue;
+                }
+
+                // If we were collecting step arguments and hit a non-table, non-doc-string line
+                // that's also not a step, stop collecting arguments
+                if (collectingStepArgument && !string.IsNullOrWhiteSpace(trimmedLine))
+                {
+                    collectingStepArgument = false;
+                }
+            }
+        }
+
+        return steps.Any() ? steps : null;
     }
 
     private List<string> FindScenarioSteps(string scenarioName, string featureName, string currentFeatureName, string currentFeatureContent)
@@ -579,8 +712,6 @@ public class ScenarioCallFeatureGenerator : IFeatureGenerator
         return referencedProjects;
     }
 
-    // Backward-compatible wrapper methods for testing (default to English dialect)
-    // Note: These are private methods used only by unit tests and should not be used in production
     private static string CreateCallStackKey(string featureName, string scenarioName)
     {
         return $"{featureName}:{scenarioName}";
