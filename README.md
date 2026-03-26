@@ -281,6 +281,13 @@ Scenario: Test with Missing Scenario
     # ERROR: Scenario "NonExistent" was not found in feature "Authentication". Check scenario name spelling and case.
 ```
 
+**Example 3: Scenario call in Background (not supported)**
+```gherkin
+Background:
+    Given I call scenario "Setup" from feature "Common"
+    # ERROR: Scenario calls in Background sections are not supported. Move this call to a Scenario block.
+```
+
 The plugin removes the original scenario call line and replaces it with a descriptive error comment, preventing the line from appearing as an "undefined step" (highlighted in purple) in your IDE.
 
 ### Nested Scenario Calls

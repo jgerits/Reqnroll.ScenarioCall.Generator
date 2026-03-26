@@ -421,11 +421,10 @@ Scenario: Base
     }
 
     [Fact]
-    public void PreprocessFeatureContent_WithScenarioCallInBackground_DoesNotExpand()
+    public void PreprocessFeatureContent_WithScenarioCallInBackground_AddsErrorDiagnostic()
     {
         // Arrange
-        // Note: The current implementation only expands scenario calls within Scenario blocks,
-        // not in Background sections.
+        // Scenario calls in Background sections are not supported
         var originalContent = @"Feature: Test Feature
 Background:
     Given I call scenario ""Setup"" from feature ""Common""
@@ -443,9 +442,14 @@ Scenario: Setup
         var result = _generator.PreprocessFeatureContent(originalContent);
 
         // Assert
-        // Background scenario calls are not expanded in the current implementation
-        Assert.Contains("Given I call scenario \"Setup\" from feature \"Common\"", result);
-        Assert.DoesNotContain("# Expanded from scenario call", result);
+        // Background scenario calls should be replaced with an error diagnostic
+        Assert.Contains("# ERROR: Scenario calls in Background sections are not supported", result);
+        Assert.Contains("Move this call to a Scenario block", result);
+        // The original call line should be removed
+        Assert.DoesNotContain("Given I call scenario \"Setup\" from feature \"Common\"", result);
+        // Other lines should be preserved
+        Assert.Contains("When I do something", result);
+        Assert.Contains("Then it should work", result);
     }
 
     [Fact]
