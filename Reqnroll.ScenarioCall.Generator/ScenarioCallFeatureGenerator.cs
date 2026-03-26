@@ -14,6 +14,8 @@ namespace Reqnroll.ScenarioCall.Generator;
 
 public class ScenarioCallFeatureGenerator : IFeatureGenerator
 {
+    private const string CircularReferenceErrorFormat = "# Error: Circular reference detected - scenario \"{0}\" from feature \"{1}\" is already in the call chain";
+    
     private readonly IFeatureGenerator _baseGenerator;
     private readonly Dictionary<string, string> _featureFileCache = new();
     private readonly Dictionary<string, GherkinDialect> _dialectCache = new();
@@ -349,8 +351,8 @@ public class ScenarioCallFeatureGenerator : IFeatureGenerator
             // Check if we're in the right feature
             if (StartsWithAnyKeyword(trimmedLine, dialect.FeatureKeywords))
             {
-                var currentFeatureName = ExtractFeatureNameFromLine(trimmedLine, dialect.FeatureKeywords);
-                foundFeature = string.Equals(currentFeatureName, featureName, StringComparison.OrdinalIgnoreCase);
+                var currentFeatureNameInFile = ExtractFeatureNameFromLine(trimmedLine, dialect.FeatureKeywords);
+                foundFeature = string.Equals(currentFeatureNameInFile, featureName, StringComparison.OrdinalIgnoreCase);
                 continue;
             }
 
