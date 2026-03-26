@@ -110,7 +110,7 @@ public class ScenarioCallFeatureGenerator : IFeatureGenerator
         var dialect = GetDialect(originalContent);
         var lines = originalContent.Split('\n');
 
-        // Fast path: if there are no scenario-call steps within Scenario or Background blocks,
+        // Fast path: if there are no scenario call steps within Scenario or Background blocks,
         // return the original content unchanged and just add a trailing newline.
         // This preserves the original line endings used in the content.
         var hasScenarioCall = false;
