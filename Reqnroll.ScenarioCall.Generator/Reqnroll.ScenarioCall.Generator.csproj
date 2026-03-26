@@ -5,9 +5,9 @@
         <LangVersion>latest</LangVersion>
         
         <!-- Version Information -->
-        <Version>3.3.2</Version>
-        <AssemblyVersion>3.3.2</AssemblyVersion>
-        <FileVersion>3.3.2</FileVersion>
+        <Version>3.3.4</Version>
+        <AssemblyVersion>3.3.4</AssemblyVersion>
+        <FileVersion>3.3.4</FileVersion>
         
         <!-- Package Metadata -->
         <PackageId>JGerits.Reqnroll.ScenarioCall.Generator</PackageId>
@@ -30,14 +30,14 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <PackageReference Include="Reqnroll" Version="3.3.2" />
-      <PackageReference Include="Reqnroll.CustomPlugin" Version="3.3.2" />
-      <PackageReference Include="Reqnroll.Tools.MsBuild.Generation" Version="3.3.2" PrivateAssets="all" />
+      <PackageReference Include="Reqnroll" Version="3.3.4" />
+      <PackageReference Include="Reqnroll.CustomPlugin" Version="3.3.4" />
+      <PackageReference Include="Reqnroll.Tools.MsBuild.Generation" Version="3.3.4" PrivateAssets="all" />
     </ItemGroup>
 
     <!-- Workaround for Reqnroll 3.3.0 breaking change: manually reference Generator assemblies -->
     <PropertyGroup>
-      <ReqnrollToolsVersion>3.3.2</ReqnrollToolsVersion>
+      <ReqnrollToolsVersion>3.3.4</ReqnrollToolsVersion>
     </PropertyGroup>
     <ItemGroup>
       <Reference Include="Reqnroll.Generator">
