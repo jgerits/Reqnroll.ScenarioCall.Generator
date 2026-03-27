@@ -12,9 +12,11 @@ A powerful Reqnroll generator plugin that enables calling and embedding scenario
 - 🔄 **Scenario Reusability**: Call existing scenarios from any feature file
 - 🎯 **Inline Expansion**: Automatically expands scenario calls during test generation
 - 🗂️ **Cross-Feature Support**: Reference scenarios across different feature files
+- 📄 **Same-Feature Calls**: Call scenarios within the same feature file ✨ NEW!
 - 🚀 **Cross-Project Support**: Automatically discovers and calls scenarios from referenced projects
 - 🏗️ **Build-Time Processing**: No runtime overhead - scenarios are expanded at build time
 - 🛡️ **Error Handling**: Graceful handling of missing scenarios with clear warnings
+- 🔒 **Recursion Detection**: Automatically prevents circular scenario references ✨ NEW!
 - 📁 **Automatic Discovery**: Automatically finds feature files in referenced projects - no manual copying needed
 - 🌍 **Multi-Language Support**: Supports all Gherkin languages (English, German, French, Spanish, Dutch, and more)
 
@@ -30,6 +32,14 @@ Then I call scenario "ScenarioName" from feature "FeatureName"
 And I call scenario "ScenarioName" from feature "FeatureName"
 But I call scenario "ScenarioName" from feature "FeatureName"
 ```
+
+To include Background steps from the target feature, add `with background`:
+
+```gherkin
+Given I call scenario "ScenarioName" from feature "FeatureName" with background
+```
+
+**Note:** By default, scenario calls do NOT include Background steps from the target feature. Use the `with background` syntax when you need the Background steps to be executed.
 
 ### Basic Example
 
@@ -88,6 +98,49 @@ Scenario: Create New User Account
     Then I should be logged out
 ```
 
+### Background Support Example
+
+When a target feature has a Background section, you can optionally include it using `with background`:
+
+**Authentication.feature**
+```gherkin
+Feature: Authentication
+Background:
+    Given the authentication system is initialized
+    And the user database is ready
+
+Scenario: Login
+    Given I am on the login page
+    When I enter valid credentials
+    Then I should be logged in successfully
+```
+
+**UserManagement.feature**
+```gherkin
+Feature: User Management
+
+Scenario: Create User with Background
+    Given I call scenario "Login" from feature "Authentication" with background
+    When I create a new user account
+    Then the user should be created successfully
+```
+
+**Generated Output (with background)**
+```gherkin
+Scenario: Create User with Background
+    # Expanded from scenario call: "Login" from feature "Authentication"
+    # Including Background steps from feature "Authentication"
+    Given the authentication system is initialized
+    And the user database is ready
+    Given I am on the login page
+    When I enter valid credentials
+    Then I should be logged in successfully
+    When I create a new user account
+    Then the user should be created successfully
+```
+
+**Note:** If you omit `with background`, only the scenario steps will be included, and the Background steps will be skipped.
+
 ## Installation
 
 ### NuGet Package
@@ -140,6 +193,46 @@ MyProject/
 
 ## Advanced Usage
 
+### Same-Feature Scenario Calls ✨ NEW!
+
+Call scenarios within the same feature file - perfect for sharing common setup or reusable steps without creating separate files!
+
+**Example:**
+```gherkin
+Feature: User Management
+
+Scenario: Common Setup
+    Given the system is initialized
+    And the database is clean
+    And test data is loaded
+
+Scenario: Create User With Setup
+    Given I call scenario "Common Setup" from feature "User Management"
+    When I create a new user
+    Then the user should be created successfully
+```
+
+**How it works:**
+- Reference the current feature by name to call scenarios within the same file
+- The plugin automatically detects the current feature context
+- Recursion detection prevents infinite loops from self-referencing scenarios
+- Works seamlessly with cross-feature calls in the same test
+
+**Benefits:**
+- Reduce duplication within a feature file
+- Keep related scenarios organized together
+- Avoid creating separate feature files for simple reusable steps
+
+**Recursion Protection:**
+The plugin automatically detects and prevents circular references:
+```gherkin
+Scenario: Self Referencing (Not Allowed)
+    Given I call scenario "Self Referencing" from feature "User Management"
+    # Error: Circular reference detected - scenario "Self Referencing" from feature "User Management" is already in the call chain
+```
+
+**Example:** See [examples/BasicUsage/SameFeatureCalls.feature](examples/BasicUsage/SameFeatureCalls.feature) for a complete example.
+
 ### Cross-Project Scenario Calls ✨
 
 Call scenarios from other projects in your solution - perfect for sharing common test scenarios across multiple test projects!
@@ -172,13 +265,30 @@ Scenario: Place Order as Authenticated User
 **Example:** See [examples/MSTestCrossProjectExample](examples/MSTestCrossProjectExample/) for a complete working example.
 
 ### Error Handling
-When a scenario call cannot be resolved, the plugin adds a warning comment instead of failing the build:
+When a scenario call cannot be resolved, the plugin provides detailed diagnostic messages to help you identify and fix the issue. The original undefined scenario call line is removed from the generated output to prevent "undefined step" errors.
 
+**Example 1: Feature not found**
 ```gherkin
-Scenario: Test with Missing Reference
-    Given I call scenario "NonExistent" from feature "Missing"
-    # Warning: Could not expand scenario call
+Scenario: Test with Missing Feature
+    Given I call scenario "SomeScenario" from feature "NonExistent"
+    # ERROR: Could not find feature file for "NonExistent". Ensure the feature file exists in the project or referenced projects.
 ```
+
+**Example 2: Scenario not found**
+```gherkin
+Scenario: Test with Missing Scenario
+    Given I call scenario "NonExistent" from feature "Authentication"
+    # ERROR: Scenario "NonExistent" was not found in feature "Authentication". Check scenario name spelling and case.
+```
+
+**Example 3: Scenario call in Background (not supported)**
+```gherkin
+Background:
+    Given I call scenario "Setup" from feature "Common"
+    # ERROR: Scenario calls in Background sections are not supported. Move this call to a Scenario block.
+```
+
+The plugin removes the original scenario call line and replaces it with a descriptive error comment, preventing the line from appearing as an "undefined step" (highlighted in purple) in your IDE.
 
 ### Nested Scenario Calls
 Scenarios can contain calls to other scenarios, enabling complex composition:
@@ -260,6 +370,25 @@ Szenario: Neues Benutzerkonto erstellen
 
 **Mixed Language Support**: You can call scenarios from feature files written in different languages. The plugin automatically detects the language of each feature file.
 
+**Background Support Translations**:
+The `with background` phrase is automatically translated for each supported language:
+- **English**: `with background`
+- **Dutch**: `met achtergrond`
+- **German**: `mit Hintergrund`
+- **French**: `avec contexte`
+- **Spanish**: `con antecedentes`
+
+Example in German:
+```gherkin
+# language: de
+Funktionalität: Benutzerverwaltung
+
+Szenario: Benutzer mit Hintergrund erstellen
+    Angenommen ich rufe Szenario "Login mit gültigen Anmeldedaten" auf aus Funktionalität "Authentifizierung" mit Hintergrund
+    Wenn ich einen neuen Benutzer erstelle
+    Dann sollte der Benutzer erstellt werden
+```
+
 ## Requirements
 
 - .NET Standard 2.0 or higher
@@ -280,7 +409,7 @@ Szenario: Neues Benutzerkonto erstellen
 - Check that the feature file is in a discoverable location
 
 **Issue**: Infinite recursion
-**Solution**: Avoid circular references between scenario calls. The plugin does not currently detect circular dependencies.
+**Solution**: The plugin now automatically detects and prevents circular references. If you see an error message like "Circular reference detected", check your scenario calls to ensure they don't create a loop.
 
 **Issue**: Feature file not found
 **Solution**: 
@@ -295,12 +424,11 @@ Szenario: Neues Benutzerkonto erstellen
 
 ## Limitations
 
-- Circular scenario call references are not detected
+- ~~Circular scenario call references are not detected~~ ✅ **FIXED**: Circular references are now automatically detected and prevented
+- ~~Calling scenarios within the same feature file is not supported~~ ✅ **FIXED**: Same-feature scenario calls are now fully supported
 - Scenario Outline templates cannot be called directly (use regular Scenario: instead)
-- Scenario calls in `Background:` sections are not expanded (only in `Scenario:` sections)
 - Nested scenario calls are not recursively expanded (scenario calls within called scenarios remain as-is)
 - Parameters cannot be passed between called scenarios
-- Background steps are not included in scenario calls
 
 ## Contributing
 

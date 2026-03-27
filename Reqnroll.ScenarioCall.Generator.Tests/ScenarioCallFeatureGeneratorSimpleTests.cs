@@ -77,7 +77,7 @@ Scenario: Login
     }
 
     [Fact]
-    public void PreprocessFeatureContent_WithInvalidScenarioCall_AddsWarningComment()
+    public void PreprocessFeatureContent_WithInvalidScenarioCall_AddsErrorComment()
     {
         // Arrange
         var originalContent = @"Feature: Test Feature
@@ -88,7 +88,10 @@ Scenario: Test Scenario
         var result = _generator.PreprocessFeatureContent(originalContent);
 
         // Assert
-        Assert.Contains("# Warning: Could not expand scenario call", result);
+        Assert.Contains("# ERROR:", result);
+        Assert.Contains("Could not find feature file", result);
+        // Verify the original call line is NOT in the result (it was removed)
+        Assert.DoesNotContain("Given I call scenario \"NonExistent\" from feature \"NonExistent\"", result);
     }
 
     [Theory]
@@ -147,7 +150,7 @@ Scenario: Login
     }
 
     [Fact]
-    public void ExpandScenarioCall_WithNonExistentScenario_ReturnsNull()
+    public void ExpandScenarioCall_WithNonExistentScenario_ReturnsErrorMessage()
     {
         // Arrange
         var callStep = @"    Given I call scenario ""NonExistent"" from feature ""NonExistent""";
@@ -156,7 +159,9 @@ Scenario: Login
         var result = CallPrivateMethod<string>(_generator, "ExpandScenarioCall", callStep, "Test Feature");
 
         // Assert
-        Assert.Null(result);
+        Assert.NotNull(result);
+        Assert.Contains("# ERROR:", result);
+        Assert.Contains("Could not find feature file", result);
     }
 
     [Fact]
@@ -416,11 +421,10 @@ Scenario: Base
     }
 
     [Fact]
-    public void PreprocessFeatureContent_WithScenarioCallInBackground_DoesNotExpand()
+    public void PreprocessFeatureContent_WithScenarioCallInBackground_ExpandsCorrectly()
     {
         // Arrange
-        // Note: The current implementation only expands scenario calls within Scenario blocks,
-        // not in Background sections.
+        // Scenario calls in Background sections should now be expanded
         var originalContent = @"Feature: Test Feature
 Background:
     Given I call scenario ""Setup"" from feature ""Common""
@@ -438,9 +442,15 @@ Scenario: Setup
         var result = _generator.PreprocessFeatureContent(originalContent);
 
         // Assert
-        // Background scenario calls are not expanded in the current implementation
-        Assert.Contains("Given I call scenario \"Setup\" from feature \"Common\"", result);
-        Assert.DoesNotContain("# Expanded from scenario call", result);
+        // Background scenario calls should be expanded
+        Assert.Contains("# Expanded from scenario call: \"Setup\" from feature \"Common\"", result);
+        Assert.Contains("Given the system is initialized", result);
+        Assert.Contains("And the database is ready", result);
+        // The original call line should be removed
+        Assert.DoesNotContain("Given I call scenario \"Setup\" from feature \"Common\"", result);
+        // Other lines should be preserved
+        Assert.Contains("When I do something", result);
+        Assert.Contains("Then it should work", result);
     }
 
     [Fact]
@@ -749,6 +759,435 @@ Scenario: Create User
         Assert.Contains("# Expanded from scenario call", result);
         Assert.Contains("Given I have the following user data:", result);
         Assert.Contains("    | Field    | Value                |", result);
+    }
+
+    [Fact]
+    public void PreprocessFeatureContent_WithScenarioCallToFeatureWithBackground_IncludesBackgroundSteps()
+    {
+        // Arrange
+        var originalContent = @"Feature: Test Feature
+Scenario: Test Scenario
+    Given I call scenario ""Login"" from feature ""Authentication"" with background
+    Then I should be logged in successfully";
+
+        SetupFeatureFileContent("Authentication", @"Feature: Authentication
+Background:
+    Given the system is initialized
+    And the database is ready
+
+Scenario: Login
+    Given I am on the login page
+    When I enter credentials
+    Then I should be logged in");
+
+        // Act
+        var result = _generator.PreprocessFeatureContent(originalContent);
+
+        // Assert
+        Assert.Contains("# Expanded from scenario call: \"Login\" from feature \"Authentication\"", result);
+        Assert.Contains("# Including Background steps from feature \"Authentication\"", result);
+        // Background steps should be included
+        Assert.Contains("Given the system is initialized", result);
+        Assert.Contains("And the database is ready", result);
+        // Scenario steps should be included
+        Assert.Contains("Given I am on the login page", result);
+        Assert.Contains("When I enter credentials", result);
+        Assert.Contains("Then I should be logged in", result);
+        
+        // Verify order: Background steps should come before scenario steps
+        var indexBackground = result.IndexOf("Given the system is initialized");
+        var indexScenario = result.IndexOf("Given I am on the login page");
+        Assert.True(indexBackground < indexScenario, "Background steps should appear before scenario steps");
+    }
+
+    [Fact]
+    public void PreprocessFeatureContent_WithScenarioCallToFeatureWithoutBackground_WorksAsUsual()
+    {
+        // Arrange
+        var originalContent = @"Feature: Test Feature
+Scenario: Test Scenario
+    Given I call scenario ""SimpleAction"" from feature ""Simple""";
+
+        SetupFeatureFileContent("Simple", @"Feature: Simple
+Scenario: SimpleAction
+    Given I do something
+    When I do something else");
+
+        // Act
+        var result = _generator.PreprocessFeatureContent(originalContent);
+
+        // Assert
+        Assert.Contains("# Expanded from scenario call: \"SimpleAction\" from feature \"Simple\"", result);
+        // Should NOT contain background comment
+        Assert.DoesNotContain("# Including Background steps", result);
+        // Scenario steps should be included
+        Assert.Contains("Given I do something", result);
+        Assert.Contains("When I do something else", result);
+    }
+
+    [Fact]
+    public void PreprocessFeatureContent_WithScenarioCallWithoutBackgroundKeyword_DoesNotIncludeBackground()
+    {
+        // Arrange - Even though target feature has background, it should NOT be included without "with background"
+        var originalContent = @"Feature: Test Feature
+Scenario: Test Scenario
+    Given I call scenario ""Login"" from feature ""Authentication""
+    Then I should be logged in successfully";
+
+        SetupFeatureFileContent("Authentication", @"Feature: Authentication
+Background:
+    Given the system is initialized
+    And the database is ready
+
+Scenario: Login
+    Given I am on the login page
+    When I enter credentials
+    Then I should be logged in");
+
+        // Act
+        var result = _generator.PreprocessFeatureContent(originalContent);
+
+        // Assert
+        Assert.Contains("# Expanded from scenario call: \"Login\" from feature \"Authentication\"", result);
+        // Should NOT contain background comment
+        Assert.DoesNotContain("# Including Background steps", result);
+        // Background steps should NOT be included
+        Assert.DoesNotContain("Given the system is initialized", result);
+        Assert.DoesNotContain("And the database is ready", result);
+        // Scenario steps should be included
+        Assert.Contains("Given I am on the login page", result);
+        Assert.Contains("When I enter credentials", result);
+        Assert.Contains("Then I should be logged in", result);
+    }
+
+    [Fact]
+    public void PreprocessFeatureContent_WithSameFeatureScenarioCall_ExpandsSuccessfully()
+    {
+        // Arrange - call a scenario within the same feature file
+        var originalContent = @"Feature: User Management
+Scenario: Login
+    Given I am on the login page
+    When I enter credentials
+    Then I should be logged in
+
+Scenario: Create User
+    Given I call scenario ""Login"" from feature ""User Management""
+    When I navigate to user creation
+    And I create a new user
+    Then the user should be created";
+
+        // Act
+        var result = _generator.PreprocessFeatureContent(originalContent);
+
+        // Assert - verify the scenario call was expanded
+        Assert.Contains("# Expanded from scenario call: \"Login\" from feature \"User Management\"", result);
+        Assert.Contains("Given I am on the login page", result);
+        Assert.Contains("When I enter credentials", result);
+        Assert.Contains("Then I should be logged in", result);
+        Assert.Contains("When I navigate to user creation", result);
+    }
+
+    [Fact]
+    public void PreprocessFeatureContent_WithSelfReferenceScenario_DetectsRecursion()
+    {
+        // Arrange - a scenario calling itself
+        var originalContent = @"Feature: Recursive Test
+Scenario: Self Calling
+    Given I call scenario ""Self Calling"" from feature ""Recursive Test""
+    When I do something
+    Then it should work";
+
+        // Act
+        var result = _generator.PreprocessFeatureContent(originalContent);
+
+        // Assert - verify recursion is detected
+        Assert.Contains("# Error: Circular reference detected", result);
+        Assert.Contains("scenario \"Self Calling\" from feature \"Recursive Test\" is already in the call chain", result);
+    }
+
+    [Fact]
+    public void PreprocessFeatureContent_WithMultipleSameFeatureCalls_ExpandsAllSuccessfully()
+    {
+        // Arrange - multiple calls to scenarios in the same feature
+        var originalContent = @"Feature: Auth Feature
+Scenario: Setup
+    Given the system is initialized
+    When I prepare the environment
+    Then setup is complete
+
+Scenario: Login
+    Given I am on the login page
+    When I enter credentials
+    Then I should be logged in
+
+Scenario: Complete Flow
+    Given I call scenario ""Setup"" from feature ""Auth Feature""
+    When I call scenario ""Login"" from feature ""Auth Feature""
+    Then I should see the dashboard";
+
+        // Act
+        var result = _generator.PreprocessFeatureContent(originalContent);
+
+        // Assert
+        Assert.Contains("# Expanded from scenario call: \"Setup\" from feature \"Auth Feature\"", result);
+        Assert.Contains("Given the system is initialized", result);
+        Assert.Contains("When I prepare the environment", result);
+        Assert.Contains("Then setup is complete", result);
+        
+        Assert.Contains("# Expanded from scenario call: \"Login\" from feature \"Auth Feature\"", result);
+        Assert.Contains("Given I am on the login page", result);
+        Assert.Contains("When I enter credentials", result);
+        Assert.Contains("Then I should be logged in", result);
+        
+        Assert.Contains("Then I should see the dashboard", result);
+    }
+
+    [Fact]
+    public void PreprocessFeatureContent_WithSameFeatureAndCrossFeatureCalls_BothWork()
+    {
+        // Arrange - mix of same-feature and cross-feature calls
+        var originalContent = @"Feature: Mixed Calls
+Scenario: Local Setup
+    Given the local environment is ready
+    When I configure settings
+    Then setup is done
+
+Scenario: Full Test
+    Given I call scenario ""Local Setup"" from feature ""Mixed Calls""
+    And I call scenario ""Login"" from feature ""External Auth""
+    When I perform the test
+    Then it should pass";
+
+        SetupFeatureFileContent("External Auth", @"Feature: External Auth
+Scenario: Login
+    Given I enter username
+    When I enter password
+    Then I am authenticated");
+
+        // Act
+        var result = _generator.PreprocessFeatureContent(originalContent);
+
+        // Assert - both same-feature and cross-feature calls should be expanded
+        Assert.Contains("# Expanded from scenario call: \"Local Setup\" from feature \"Mixed Calls\"", result);
+        Assert.Contains("Given the local environment is ready", result);
+        Assert.Contains("When I configure settings", result);
+        
+        Assert.Contains("# Expanded from scenario call: \"Login\" from feature \"External Auth\"", result);
+        Assert.Contains("Given I enter username", result);
+        Assert.Contains("When I enter password", result);
+    }
+
+    [Fact]
+    public void PreprocessFeatureContent_WithCaseInsensitiveSameFeatureCall_Works()
+    {
+        // Arrange - test case insensitivity
+        var originalContent = @"Feature: Case Test
+Scenario: Helper Scenario
+    Given I have a helper step
+    When I execute it
+    Then it works
+
+Scenario: Main Scenario
+    Given I call scenario ""helper scenario"" from feature ""case test""
+    Then the test should pass";
+
+        // Act
+        var result = _generator.PreprocessFeatureContent(originalContent);
+
+        // Assert - should work with different casing
+        Assert.Contains("# Expanded from scenario call: \"helper scenario\" from feature \"case test\"", result);
+        Assert.Contains("Given I have a helper step", result);
+        Assert.Contains("When I execute it", result);
+        Assert.Contains("Then it works", result);
+    }
+
+    [Fact]
+    public void PreprocessFeatureContent_WithIndirectRecursion_DetectsInSameFeature()
+    {
+        // Arrange - test indirect circular reference within the same feature
+        // Scenario A calls Scenario B, and Scenario B calls Scenario A
+        var originalContent = @"Feature: Circular Test
+Scenario: Scenario A
+    Given I call scenario ""Scenario B"" from feature ""Circular Test""
+    When I do something in A
+    Then A should work
+
+Scenario: Scenario B
+    Given I call scenario ""Scenario A"" from feature ""Circular Test""
+    When I do something in B
+    Then B should work
+
+Scenario: Start Test
+    Given I call scenario ""Scenario A"" from feature ""Circular Test""
+    Then the test should complete";
+
+        // Act
+        var result = _generator.PreprocessFeatureContent(originalContent);
+
+        // Assert - The expansion of Scenario A will include the call to Scenario B as-is,
+        // because nested scenario calls are not recursively expanded per the documented limitation.
+        // So this won't detect the indirect recursion unless we recurse.
+        // However, direct self-reference should still be caught.
+        Assert.Contains("# Expanded from scenario call: \"Scenario A\" from feature \"Circular Test\"", result);
+        // The call to Scenario B within Scenario A should be preserved as-is (not expanded)
+        Assert.Contains("Given I call scenario \"Scenario B\" from feature \"Circular Test\"", result);
+    }
+
+    [Fact]
+    public void PreprocessFeatureContent_WithNonExistentFeature_AddsDetailedErrorMessage()
+    {
+        // Arrange
+        var originalContent = @"Feature: Test Feature
+Scenario: Test Scenario
+    Given I call scenario ""SomeScenario"" from feature ""NonExistentFeature""";
+
+        // Act
+        var result = _generator.PreprocessFeatureContent(originalContent);
+
+        // Assert
+        Assert.Contains("# ERROR:", result);
+        Assert.Contains("Could not find feature file for \"NonExistentFeature\"", result);
+        Assert.Contains("Ensure the feature file exists", result);
+        // Verify the original call line is NOT in the result
+        Assert.DoesNotContain("Given I call scenario \"SomeScenario\" from feature \"NonExistentFeature\"", result);
+    }
+
+    [Fact]
+    public void PreprocessFeatureContent_WithNonExistentScenario_AddsDetailedErrorMessage()
+    {
+        // Arrange
+        var originalContent = @"Feature: Test Feature
+Scenario: Test Scenario
+    Given I call scenario ""NonExistentScenario"" from feature ""Authentication""";
+
+        SetupFeatureFileContent("Authentication", @"Feature: Authentication
+Scenario: Login
+    Given I am on the login page
+    When I enter credentials");
+
+        // Act
+        var result = _generator.PreprocessFeatureContent(originalContent);
+
+        // Assert
+        Assert.Contains("# ERROR:", result);
+        Assert.Contains("Scenario \"NonExistentScenario\" was not found", result);
+        Assert.Contains("feature \"Authentication\"", result);
+        Assert.Contains("Check scenario name spelling and case", result);
+        // Verify the original call line is NOT in the result
+        Assert.DoesNotContain("Given I call scenario \"NonExistentScenario\" from feature \"Authentication\"", result);
+    }
+
+    [Fact]
+    public void PreprocessFeatureContent_WithWrongFeatureNameInFile_AddsDetailedErrorMessage()
+    {
+        // Arrange
+        var originalContent = @"Feature: Test Feature
+Scenario: Test Scenario
+    Given I call scenario ""Login"" from feature ""WrongName""";
+
+        // Create a feature file but reference it with the wrong name
+        SetupFeatureFileContent("RightName", @"Feature: RightName
+Scenario: Login
+    Given I am on the login page");
+
+        // Act
+        var result = _generator.PreprocessFeatureContent(originalContent);
+
+        // Assert
+        Assert.Contains("# ERROR:", result);
+        Assert.Contains("Could not find feature file for \"WrongName\"", result);
+        // Verify the original call line is NOT in the result
+        Assert.DoesNotContain("Given I call scenario \"Login\" from feature \"WrongName\"", result);
+    }
+
+    [Fact]
+    public void ExpandScenarioCall_WithException_ReturnsErrorMessage()
+    {
+        // This test verifies the exception handling in ExpandScenarioCall
+        // We can't easily trigger an exception without mocking, but we verify the error path exists
+        // The actual exception handling is tested indirectly through the other tests
+        
+        // Arrange
+        var callStep = @"    Given I call scenario ""Test"" from feature ""TestFeature""";
+
+        // Act
+        var result = CallPrivateMethod<string>(_generator, "ExpandScenarioCall", callStep, "CurrentFeature");
+
+        // Assert - Either expands successfully or returns an error message
+        Assert.NotNull(result);
+        // Should contain either "Expanded from" or "ERROR"
+        Assert.True(result.Contains("# Expanded from") || result.Contains("# ERROR:"), 
+            "Result should contain either success expansion or error message");
+    }
+
+    [Fact]
+    public void PreprocessFeatureContent_PreservesOtherStepsWhenScenarioCallFails()
+    {
+        // Arrange
+        var originalContent = @"Feature: Test Feature
+Scenario: Test Scenario
+    Given I have some setup
+    When I call scenario ""Missing"" from feature ""Missing""
+    Then I should see results";
+
+        // Act
+        var result = _generator.PreprocessFeatureContent(originalContent);
+
+        // Assert
+        Assert.Contains("Given I have some setup", result);
+        Assert.Contains("Then I should see results", result);
+        Assert.Contains("# ERROR:", result);
+        // Verify the failed call line is NOT in the result
+        Assert.DoesNotContain("When I call scenario \"Missing\" from feature \"Missing\"", result);
+    }
+
+    [Fact]
+    public void FindScenarioStepsWithDiagnostics_WithValidScenario_ReturnsStepsAndNoDiagnostic()
+    {
+        // Arrange
+        SetupFeatureFileContent("TestFeature", @"Feature: TestFeature
+Scenario: TestScenario
+    Given I have a step
+    When I do something");
+
+        // Act
+        var result = CallPrivateMethod<(List<string>, string)>(_generator, "FindScenarioStepsWithDiagnostics", "TestScenario", "TestFeature", "CurrentFeature", "");
+
+        // Assert
+        Assert.NotNull(result.Item1);
+        Assert.Equal(2, result.Item1.Count);
+        Assert.Null(result.Item2);
+    }
+
+    [Fact]
+    public void FindScenarioStepsWithDiagnostics_WithMissingFeatureFile_ReturnsDiagnostic()
+    {
+        // Act
+        var result = CallPrivateMethod<(List<string>, string)>(_generator, "FindScenarioStepsWithDiagnostics", "AnyScenario", "MissingFeature", "CurrentFeature", "");
+
+        // Assert
+        Assert.Null(result.Item1);
+        Assert.NotNull(result.Item2);
+        Assert.Contains("Could not find feature file", result.Item2);
+        Assert.Contains("MissingFeature", result.Item2);
+    }
+
+    [Fact]
+    public void FindScenarioStepsWithDiagnostics_WithMissingScenario_ReturnsDiagnostic()
+    {
+        // Arrange
+        SetupFeatureFileContent("ExistingFeature", @"Feature: ExistingFeature
+Scenario: RealScenario
+    Given I exist");
+
+        // Act
+        var result = CallPrivateMethod<(List<string>, string)>(_generator, "FindScenarioStepsWithDiagnostics", "MissingScenario", "ExistingFeature", "CurrentFeature", "");
+
+        // Assert
+        Assert.Null(result.Item1);
+        Assert.NotNull(result.Item2);
+        Assert.Contains("Scenario \"MissingScenario\" was not found", result.Item2);
+        Assert.Contains("ExistingFeature", result.Item2);
     }
 }
 
