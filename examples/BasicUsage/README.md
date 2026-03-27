@@ -7,6 +7,7 @@ This example demonstrates the core functionality of the Reqnroll.ScenarioCall.Ge
 ### English Examples
 - **Authentication.feature**: Contains reusable authentication scenarios
 - **UserManagement.feature**: Demonstrates calling authentication scenarios from user management tests
+- **SameFeatureCalls.feature**: Demonstrates calling scenarios within the same feature file (NEW!)
 
 ### Dutch Examples (Nederlands)
 - **AuthenticatieNL.feature**: Bevat herbruikbare authenticatie scenario's
@@ -27,7 +28,30 @@ The `UserManagement.feature` file shows how to call scenarios from other feature
 Given I call scenario "Login with Valid Credentials" from feature "Authentication"
 ```
 
-### 3. Test Composition
+### 3. Same-Feature Scenario Calls (NEW!)
+The `SameFeatureCalls.feature` file demonstrates calling scenarios within the same feature file:
+
+```gherkin
+Feature: Same Feature Scenario Calls
+
+Scenario: Common Setup Steps
+    Given the system is initialized
+    And the database is clean
+
+Scenario: Test With Same Feature Setup
+    Given I call scenario "Common Setup Steps" from feature "Same Feature Scenario Calls"
+    When I perform my test actions
+    Then I should see expected results
+```
+
+This pattern is useful for:
+- Sharing common setup steps within a feature
+- Reducing duplication without creating separate feature files
+- Organizing related scenarios together
+
+**Note**: The plugin automatically detects and prevents circular references (self-calling scenarios).
+
+### 4. Test Composition
 Each user management test follows a pattern:
 1. Login (using scenario call)
 2. Perform specific user management action

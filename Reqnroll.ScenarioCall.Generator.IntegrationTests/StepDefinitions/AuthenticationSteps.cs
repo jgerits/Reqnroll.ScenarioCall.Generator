@@ -157,4 +157,40 @@ public class AuthenticationSteps
             throw new Exception($"Expected at least 2 login attempts, but found {attempts?.Count ?? 0}");
         }
     }
+
+    [Given(@"the authentication system is initialized")]
+    public void GivenTheAuthenticationSystemIsInitialized()
+    {
+        _scenarioContext["AuthSystemInitialized"] = true;
+    }
+
+    [Given(@"the user database is ready")]
+    public void GivenTheUserDatabaseIsReady()
+    {
+        _scenarioContext["UserDatabaseReady"] = true;
+    }
+
+    [Then(@"I should see the success message")]
+    public void ThenIShouldSeeTheSuccessMessage()
+    {
+        // Verify that background was executed
+        if (!_scenarioContext.ContainsKey("AuthSystemInitialized"))
+        {
+            throw new Exception("Background step 'authentication system is initialized' was not executed");
+        }
+        if (!_scenarioContext.ContainsKey("UserDatabaseReady"))
+        {
+            throw new Exception("Background step 'user database is ready' was not executed");
+        }
+        
+        // Verify login was successful
+        var isSuccessful = _scenarioContext.ContainsKey("LoginSuccessful") 
+            ? (bool)_scenarioContext["LoginSuccessful"] 
+            : _loginSuccessful;
+
+        if (!isSuccessful)
+        {
+            throw new Exception("Expected login to be successful");
+        }
+    }
 }
