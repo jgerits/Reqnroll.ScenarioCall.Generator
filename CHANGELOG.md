@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.4.0] - 2026-03-27
+
+### Added
+- **Scenario calls in Background sections** (#34): Scenario calls can now be used inside Gherkin `Background` sections, allowing shared setup logic to call reusable scenarios.
+- **Optional Background inclusion** (#35): Added "with background" syntax to include the `Background` steps of a called feature when expanding a scenario call. Multi-language support included: Dutch (`met achtergrond`), German (`mit Hintergrund`), French (`avec contexte`), Spanish (`con antecedentes`).
+- **Same-feature scenario calls with recursion detection** (#33): Scenarios can now call other scenarios within the same feature file. Recursion detection prevents infinite loops when scenarios call each other directly or indirectly.
+- **Diagnostic errors for failed scenario calls** (#31): When a scenario call cannot be expanded (feature not found, scenario not found, or other error), the call line is replaced with a detailed `# ERROR` comment in the generated code. This prevents undefined steps (purple highlighting) in IDEs.
+- **Language directive validation for multi-language calls** (#32): When a calling feature specifies a non-English language directive, the plugin now validates that the called feature also has a matching language directive. A warning comment is generated when the directive is missing or when languages mismatch.
+
 ## [3.3.2] - 2026-01-22
 
 ### Changed
@@ -139,6 +148,8 @@ This ensures compatibility with the corresponding Reqnroll version while allowin
 
 ## Links
 
-- [Unreleased]: https://github.com/jgerits/Reqnroll.ScenarioCall.Generator/compare/v3.3.0...HEAD
+- [Unreleased]: https://github.com/jgerits/Reqnroll.ScenarioCall.Generator/compare/v3.4.0...HEAD
+- [3.4.0]: https://github.com/jgerits/Reqnroll.ScenarioCall.Generator/compare/v3.3.4...v3.4.0
+- [3.3.2]: https://github.com/jgerits/Reqnroll.ScenarioCall.Generator/releases/tag/v3.3.2
 - [3.3.0]: https://github.com/jgerits/Reqnroll.ScenarioCall.Generator/releases/tag/v3.3.0
 - [3.0.0]: https://github.com/jgerits/Reqnroll.ScenarioCall.Generator/releases/tag/v3.0.0
