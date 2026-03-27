@@ -19,6 +19,9 @@ public class ScenarioCallFeatureGenerator : IFeatureGenerator
     private readonly IFeatureGenerator _baseGenerator;
     private readonly Dictionary<string, string> _featureFileCache = new();
     private readonly Dictionary<string, GherkinDialect> _dialectCache = new();
+    
+    // Common Gherkin language codes to try when language directive is missing
+    private static readonly string[] CommonLanguages = { "en", "nl", "de", "fr", "es" };
 
     public ScenarioCallFeatureGenerator(IFeatureGenerator baseGenerator, ReqnrollDocument document)
     {
@@ -62,6 +65,51 @@ public class ScenarioCallFeatureGenerator : IFeatureGenerator
         }
         
         return "en"; // Default to English
+    }
+
+    private static bool HasExplicitLanguageDirective(string content)
+    {
+        // Check if the feature file has an explicit # language: directive
+        var lines = content.Split('\n');
+        foreach (var line in lines.Take(10))
+        {
+            var trimmed = line.Trim();
+            if (trimmed.StartsWith("#") && trimmed.Contains("language:"))
+            {
+                var match = Regex.Match(trimmed, @"#\s*language:\s*([a-z]{2}(-[A-Z]{2})?)", RegexOptions.IgnoreCase);
+                if (match.Success)
+                {
+                    return true;
+                }
+            }
+            // Stop at first non-comment, non-blank line
+            if (!string.IsNullOrWhiteSpace(trimmed) && !trimmed.StartsWith("#"))
+            {
+                break;
+            }
+        }
+        
+        return false;
+    }
+
+    private string ValidateLanguageDirectives(string callingLanguage, string calledFeatureContent, string calledFeatureName)
+    {
+        var calledLanguage = DetectLanguage(calledFeatureContent);
+        var calledHasDirective = HasExplicitLanguageDirective(calledFeatureContent);
+        
+        // If calling feature is non-English but called feature has no directive
+        if (callingLanguage != "en" && !calledHasDirective)
+        {
+            return $"Language directive missing in called feature '{calledFeatureName}'. Add '# language: {callingLanguage}' at the top of the feature file.";
+        }
+        
+        // If languages are different (and both are explicit or calling is non-English)
+        if (callingLanguage != calledLanguage && callingLanguage != "en")
+        {
+            return $"Language mismatch: calling feature uses '{callingLanguage}' but called feature '{calledFeatureName}' uses '{calledLanguage}'. Both feature files should use the same language directive.";
+        }
+        
+        return null;
     }
 
     private static List<(string callPhrase, string fromPhrase, string withBackgroundPhrase)> GetScenarioCallPhrases(string language)
@@ -307,12 +355,39 @@ public class ScenarioCallFeatureGenerator : IFeatureGenerator
 
         try
         {
+            // Get feature content for validation
+            string featureContent;
+            if (string.Equals(featureName, currentFeatureName, StringComparison.OrdinalIgnoreCase))
+            {
+                // Use the current feature content for same-feature calls
+                featureContent = currentFeatureContent;
+            }
+            else
+            {
+                // Look up the feature file content for cross-feature calls
+                featureContent = FindFeatureFileContent(featureName);
+            }
+            
+            // Validate language directives before expanding
+            string languageValidationWarning = null;
+            if (featureContent != null)
+            {
+                languageValidationWarning = ValidateLanguageDirectives(dialect.Language, featureContent, featureName);
+            }
+            
             var backgroundSteps = includeBackground ? FindBackgroundSteps(featureName, currentFeatureName, currentFeatureContent) : null;
             var (scenarioSteps, diagnosticMessage) = FindScenarioStepsWithDiagnostics(scenarioName, featureName, currentFeatureName, currentFeatureContent);
             
             if (scenarioSteps != null && scenarioSteps.Any())
             {
                 var result = new StringBuilder();
+                
+                // Add language validation warning if present
+                if (!string.IsNullOrEmpty(languageValidationWarning))
+                {
+                    result.AppendLine($"{leadingWhitespace}# WARNING: {languageValidationWarning}");
+                }
+                
                 result.AppendLine($"{leadingWhitespace}# Expanded from scenario call: \"{scenarioName}\" from feature \"{featureName}\"");
                 
                 // Include Background steps only if requested
@@ -332,6 +407,12 @@ public class ScenarioCallFeatureGenerator : IFeatureGenerator
                 }
                     
                 return result.ToString();
+            }
+            else if (!string.IsNullOrEmpty(languageValidationWarning))
+            {
+                // If scenario steps couldn't be found but there's a language validation warning,
+                // it's likely due to the language mismatch. Return the warning.
+                return $"{leadingWhitespace}# WARNING: {languageValidationWarning}\n{leadingWhitespace}# Warning: Could not expand scenario call (likely due to language directive issue)\n";
             }
             else if (!string.IsNullOrEmpty(diagnosticMessage))
             {
@@ -627,6 +708,22 @@ public class ScenarioCallFeatureGenerator : IFeatureGenerator
                 // Try with language-aware extraction
                 var dialect = GetDialect(content);
                 var extractedFeatureName = ExtractFeatureNameFromContent(content, dialect);
+                
+                // If feature name extraction failed with detected dialect, try common languages
+                if (extractedFeatureName == null)
+                {
+                    // Try common language dialects when language directive is missing
+                    foreach (var lang in CommonLanguages)
+                    {
+                        var dialectProvider = new GherkinDialectProvider(lang);
+                        var testDialect = dialectProvider.DefaultDialect;
+                        extractedFeatureName = ExtractFeatureNameFromContent(content, testDialect);
+                        if (extractedFeatureName != null)
+                        {
+                            break;
+                        }
+                    }
+                }
                     
                 if (extractedFeatureName != null)
                 {
