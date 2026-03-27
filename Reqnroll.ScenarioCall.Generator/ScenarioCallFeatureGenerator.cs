@@ -110,19 +110,26 @@ public class ScenarioCallFeatureGenerator : IFeatureGenerator
         var dialect = GetDialect(originalContent);
         var lines = originalContent.Split('\n');
 
-        // Fast path: if there are no scenario-call steps within Scenario blocks,
+        // Fast path: if there are no scenario call steps within Scenario or Background blocks,
         // return the original content unchanged and just add a trailing newline.
         // This preserves the original line endings used in the content.
         var hasScenarioCall = false;
         var scanInScenario = false;
+        var scanInBackground = false;
         foreach (var l in lines)
         {
             var t = l.Trim();
             if (StartsWithAnyKeyword(t, dialect.ScenarioKeywords))
             {
                 scanInScenario = true;
+                scanInBackground = false;
             }
-            else if (scanInScenario && IsScenarioCallStep(t, dialect))
+            else if (StartsWithAnyKeyword(t, dialect.BackgroundKeywords))
+            {
+                scanInBackground = true;
+                scanInScenario = false;
+            }
+            else if ((scanInScenario || scanInBackground) && IsScenarioCallStep(t, dialect))
             {
                 hasScenarioCall = true;
                 break;
@@ -136,6 +143,7 @@ public class ScenarioCallFeatureGenerator : IFeatureGenerator
 
         var result = new StringBuilder();
         var inScenario = false;
+        var inBackground = false;
         var currentScenarioName = "";
         var currentFeatureName = ExtractFeatureNameFromContent(originalContent, dialect);
         var callStack = new HashSet<string>();
@@ -147,6 +155,7 @@ public class ScenarioCallFeatureGenerator : IFeatureGenerator
             if (StartsWithAnyKeyword(trimmedLine, dialect.ScenarioKeywords))
             {
                 inScenario = true;
+                inBackground = false;
                 currentScenarioName = ExtractScenarioNameFromLine(trimmedLine, dialect.ScenarioKeywords);
                 // Clear call stack for each new scenario - each scenario is processed independently
                 // to prevent recursion only within its own expansion, not across unrelated scenarios
@@ -158,6 +167,14 @@ public class ScenarioCallFeatureGenerator : IFeatureGenerator
                 result.AppendLine(line);
                 continue;
             }
+            
+            if (StartsWithAnyKeyword(trimmedLine, dialect.BackgroundKeywords))
+            {
+                inBackground = true;
+                inScenario = false;
+                result.AppendLine(line);
+                continue;
+            }
                 
             if (inScenario && IsScenarioCallStep(trimmedLine, dialect))
             {
@@ -165,13 +182,27 @@ public class ScenarioCallFeatureGenerator : IFeatureGenerator
                 if (expandedSteps != null)
                 {
                     result.Append(expandedSteps);
+                    // Don't add the original line if expansion was successful or returned an error message
                     continue; 
                 }
                 else
                 {
+                    // This should not happen anymore since ExpandScenarioCall now returns diagnostics
+                    // but keep as a fallback for unexpected scenarios
                     var leadingWhitespace = line.Substring(0, line.Length - line.TrimStart().Length);
-                    result.AppendLine($"{leadingWhitespace}# Warning: Could not expand scenario call");
+                    result.AppendLine($"{leadingWhitespace}# ERROR: Could not expand scenario call - unknown reason");
+                    // Don't add the original line to avoid undefined step
+                    continue;
                 }
+            }
+            
+            if (inBackground && IsScenarioCallStep(trimmedLine, dialect))
+            {
+                // Scenario calls in Background are not supported
+                var leadingWhitespace = line.Substring(0, line.Length - line.TrimStart().Length);
+                result.AppendLine($"{leadingWhitespace}# ERROR: Scenario calls in Background sections are not supported. Move this call to a Scenario block.");
+                // Don't add the original line to avoid undefined step
+                continue;
             }
                 
             // Add the original line
@@ -284,9 +315,8 @@ public class ScenarioCallFeatureGenerator : IFeatureGenerator
         try
         {
             var backgroundSteps = includeBackground ? FindBackgroundSteps(featureName, currentFeatureName, currentFeatureContent) : null;
-            var scenarioSteps = FindScenarioSteps(scenarioName, featureName, currentFeatureName, currentFeatureContent);
+            var (scenarioSteps, diagnosticMessage) = FindScenarioStepsWithDiagnostics(scenarioName, featureName, currentFeatureName, currentFeatureContent);
             
-            // Need at least scenario steps to expand
             if (scenarioSteps != null && scenarioSteps.Any())
             {
                 var result = new StringBuilder();
@@ -310,10 +340,15 @@ public class ScenarioCallFeatureGenerator : IFeatureGenerator
                     
                 return result.ToString();
             }
+            else if (!string.IsNullOrEmpty(diagnosticMessage))
+            {
+                // Return diagnostic message instead of null to provide clear feedback
+                return $"{leadingWhitespace}# ERROR: {diagnosticMessage}\n";
+            }
         }
         catch (Exception ex)
         {
-            return $"{leadingWhitespace}# Error expanding scenario call: {ex.Message}\n";
+            return $"{leadingWhitespace}# ERROR: Exception during scenario call expansion - {ex.Message}\n";
         }
 
         return null;
@@ -420,7 +455,7 @@ public class ScenarioCallFeatureGenerator : IFeatureGenerator
         return steps.Any() ? steps : null;
     }
 
-    private List<string> FindScenarioSteps(string scenarioName, string featureName, string currentFeatureName, string currentFeatureContent)
+    private (List<string> steps, string diagnosticMessage) FindScenarioStepsWithDiagnostics(string scenarioName, string featureName, string currentFeatureName, string currentFeatureContent)
     {
         // Check if we're calling a scenario from the same feature
         string featureContent;
@@ -435,13 +470,17 @@ public class ScenarioCallFeatureGenerator : IFeatureGenerator
             featureContent = FindFeatureFileContent(featureName);
         }
         
-        if (featureContent == null) return null;
+        if (featureContent == null)
+        {
+            return (null, $"Could not find feature file for \"{featureName}\". Ensure the feature file exists in the project or referenced projects.");
+        }
 
         var dialect = GetDialect(featureContent);
         var lines = featureContent.Split('\n');
         var steps = new List<string>();
         var inTargetScenario = false;
         var foundFeature = false;
+        var featureFound = false;
         var collectingStepArgument = false;
         var inDocString = false;
 
@@ -454,6 +493,10 @@ public class ScenarioCallFeatureGenerator : IFeatureGenerator
             {
                 var currentFeatureNameInFile = ExtractFeatureNameFromLine(trimmedLine, dialect.FeatureKeywords);
                 foundFeature = string.Equals(currentFeatureNameInFile, featureName, StringComparison.OrdinalIgnoreCase);
+                if (foundFeature)
+                {
+                    featureFound = true;
+                }
                 continue;
             }
 
@@ -527,7 +570,17 @@ public class ScenarioCallFeatureGenerator : IFeatureGenerator
             }
         }
 
-        return steps.Any() ? steps : null;
+        if (!featureFound)
+        {
+            return (null, $"Feature \"{featureName}\" was not found in the feature file. Check feature name spelling and case.");
+        }
+
+        if (!steps.Any())
+        {
+            return (null, $"Scenario \"{scenarioName}\" was not found in feature \"{featureName}\". Check scenario name spelling and case.");
+        }
+
+        return (steps, null);
     }
 
     private string ExtractFeatureNameFromLine(string line, IEnumerable<string> featureKeywords)
@@ -752,11 +805,16 @@ public class ScenarioCallFeatureGenerator : IFeatureGenerator
         return ExpandScenarioCall(callStepLine, currentFeatureName, dialect, "", callStack);
     }
 
+    private List<string> FindScenarioSteps(string scenarioName, string featureName, string currentFeatureName, string currentFeatureContent)
+    {
+        return FindScenarioStepsWithDiagnostics(scenarioName, featureName, currentFeatureName, currentFeatureContent).steps;
+    }
+
     private List<string> FindScenarioSteps(string scenarioName, string featureName)
     {
         // For backward compatibility, pass null for current feature name and empty for content
         // This will force lookup from file system
-        return FindScenarioSteps(scenarioName, featureName, null, "");
+        return FindScenarioStepsWithDiagnostics(scenarioName, featureName, null, "").steps;
     }
 
     public UnitTestFeatureGenerationResult GenerateUnitTestFixture(ReqnrollDocument document, string testClassName,
