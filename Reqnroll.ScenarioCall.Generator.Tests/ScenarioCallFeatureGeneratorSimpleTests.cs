@@ -421,10 +421,10 @@ Scenario: Base
     }
 
     [Fact]
-    public void PreprocessFeatureContent_WithScenarioCallInBackground_AddsErrorDiagnostic()
+    public void PreprocessFeatureContent_WithScenarioCallInBackground_ExpandsCorrectly()
     {
         // Arrange
-        // Scenario calls in Background sections are not supported
+        // Scenario calls in Background sections should now be expanded
         var originalContent = @"Feature: Test Feature
 Background:
     Given I call scenario ""Setup"" from feature ""Common""
@@ -442,9 +442,10 @@ Scenario: Setup
         var result = _generator.PreprocessFeatureContent(originalContent);
 
         // Assert
-        // Background scenario calls should be replaced with an error diagnostic
-        Assert.Contains("# ERROR: Scenario calls in Background sections are not supported", result);
-        Assert.Contains("Move this call to a Scenario block", result);
+        // Background scenario calls should be expanded
+        Assert.Contains("# Expanded from scenario call: \"Setup\" from feature \"Common\"", result);
+        Assert.Contains("Given the system is initialized", result);
+        Assert.Contains("And the database is ready", result);
         // The original call line should be removed
         Assert.DoesNotContain("Given I call scenario \"Setup\" from feature \"Common\"", result);
         // Other lines should be preserved

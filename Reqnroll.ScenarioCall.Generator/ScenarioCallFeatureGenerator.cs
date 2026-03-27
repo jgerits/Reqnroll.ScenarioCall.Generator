@@ -119,7 +119,8 @@ public class ScenarioCallFeatureGenerator : IFeatureGenerator
         foreach (var l in lines)
         {
             var t = l.Trim();
-            if (StartsWithAnyKeyword(t, dialect.ScenarioKeywords))
+            if (StartsWithAnyKeyword(t, dialect.ScenarioKeywords) || 
+                StartsWithAnyKeyword(t, dialect.BackgroundKeywords))
             {
                 scanInScenario = true;
                 scanInBackground = false;
@@ -176,7 +177,7 @@ public class ScenarioCallFeatureGenerator : IFeatureGenerator
                 continue;
             }
                 
-            if (inScenario && IsScenarioCallStep(trimmedLine, dialect))
+            if ((inScenario || inBackground) && IsScenarioCallStep(trimmedLine, dialect))
             {
                 var expandedSteps = ExpandScenarioCall(trimmedLine, currentFeatureName, dialect, originalContent, callStack);
                 if (expandedSteps != null)
@@ -196,14 +197,6 @@ public class ScenarioCallFeatureGenerator : IFeatureGenerator
                 }
             }
             
-            if (inBackground && IsScenarioCallStep(trimmedLine, dialect))
-            {
-                // Scenario calls in Background are not supported
-                var leadingWhitespace = line.Substring(0, line.Length - line.TrimStart().Length);
-                result.AppendLine($"{leadingWhitespace}# ERROR: Scenario calls in Background sections are not supported. Move this call to a Scenario block.");
-                // Don't add the original line to avoid undefined step
-                continue;
-            }
                 
             // Add the original line
             result.AppendLine(line);

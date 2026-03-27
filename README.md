@@ -423,7 +423,6 @@ Szenario: Benutzer mit Hintergrund erstellen
 - ~~Circular scenario call references are not detected~~ ✅ **FIXED**: Circular references are now automatically detected and prevented
 - ~~Calling scenarios within the same feature file is not supported~~ ✅ **FIXED**: Same-feature scenario calls are now fully supported
 - Scenario Outline templates cannot be called directly (use regular Scenario: instead)
-- Scenario calls in `Background:` sections are not expanded (only in `Scenario:` sections)
 - Nested scenario calls are not recursively expanded (scenario calls within called scenarios remain as-is)
 - Parameters cannot be passed between called scenarios
 
