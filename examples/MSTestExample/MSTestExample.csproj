@@ -14,11 +14,11 @@
       In a real project, you would use the NuGet package:
       <PackageReference Include="JGerits.Reqnroll.ScenarioCall.Generator" Version="3.0.8" />
     -->
-    <PackageReference Include="JGerits.Reqnroll.ScenarioCall.Generator" Version="3.3.4" />
+    <PackageReference Include="JGerits.Reqnroll.ScenarioCall.Generator" Version="3.4.0" />
     
-    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.3.0" />
-    <PackageReference Include="MSTest.TestAdapter" Version="4.1.0" />
-    <PackageReference Include="MSTest.TestFramework" Version="4.1.0" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.6.0" />
+    <PackageReference Include="MSTest.TestAdapter" Version="4.2.3" />
+    <PackageReference Include="MSTest.TestFramework" Version="4.2.3" />
     <PackageReference Include="Reqnroll" Version="3.3.4" />
     <PackageReference Include="Reqnroll.MSTest" Version="3.3.4" />
   </ItemGroup>
