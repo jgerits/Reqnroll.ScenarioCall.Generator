@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.5.0] - 2026-06-10
+
+### Added
+- **Improved error messages for missing scenarios and features** (#36): When a scenario call references a non-existent scenario or feature, the generator now provides clear, actionable error messages instead of relying on Reqnroll's default "step not defined" error.
+  - **Scenario not found**: `ERROR: Scenario "X" was not found in feature "Y". Check scenario name spelling and case.`
+  - **Feature file not found**: `ERROR: Could not find feature file for "X". Ensure the feature file exists in the project or referenced projects.`
+  - **Feature name not found**: `ERROR: Feature "X" was not found in the feature file. Check feature name spelling and case.`
+
+### Changed
+- **Diagnostic error handling**: Added `FindScenarioStepsWithDiagnostics` and `FindBackgroundStepsWithDiagnostics` methods to capture and return error information alongside step content, enabling precise error reporting.
+
 ## [3.4.0] - 2026-03-27
 
 ### Added

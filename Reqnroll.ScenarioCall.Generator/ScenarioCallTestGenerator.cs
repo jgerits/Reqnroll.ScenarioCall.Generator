@@ -266,7 +266,7 @@ public class ScenarioCallTestGenerator : TestGenerator
         try
         {
             var backgroundSteps = includeBackground ? FindBackgroundSteps(featureName) : null;
-            var scenarioSteps = FindScenarioSteps(scenarioName, featureName);
+            var (scenarioSteps, diagnosticMessage) = FindScenarioStepsWithDiagnostics(scenarioName, featureName);
             
             // Need at least scenario steps to expand
             if (scenarioSteps != null && scenarioSteps.Any())
@@ -292,10 +292,15 @@ public class ScenarioCallTestGenerator : TestGenerator
                     
                 return result.ToString();
             }
+            else if (!string.IsNullOrEmpty(diagnosticMessage))
+            {
+                // Return diagnostic message instead of null to provide clear feedback
+                return $"{leadingWhitespace}# ERROR: {diagnosticMessage}\n";
+            }
         }
         catch (Exception ex)
         {
-            return $"{leadingWhitespace}# Error expanding scenario call: {ex.Message}\n";
+            return $"{leadingWhitespace}# ERROR: Exception during scenario call expansion - {ex.Message}\n";
         }
 
         return null;
@@ -303,8 +308,17 @@ public class ScenarioCallTestGenerator : TestGenerator
 
     private List<string> FindBackgroundSteps(string featureName)
     {
+        var (steps, _) = FindBackgroundStepsWithDiagnostics(featureName);
+        return steps;
+    }
+
+    private (List<string> steps, string diagnosticMessage) FindBackgroundStepsWithDiagnostics(string featureName)
+    {
         var featureContent = FindFeatureFileContent(featureName);
-        if (featureContent == null) return null;
+        if (featureContent == null) 
+        {
+            return (null, $"Could not find feature file for \"{featureName}\". Ensure the feature file exists in the project or referenced projects.");
+        }
 
         var dialect = GetDialect(featureContent);
         var lines = featureContent.Split('\n');
@@ -387,19 +401,23 @@ public class ScenarioCallTestGenerator : TestGenerator
             }
         }
 
-        return steps.Any() ? steps : null;
+        return (steps.Any() ? steps : null, null);
     }
 
-    private List<string> FindScenarioSteps(string scenarioName, string featureName)
+    private (List<string> steps, string diagnosticMessage) FindScenarioStepsWithDiagnostics(string scenarioName, string featureName)
     {
         var featureContent = FindFeatureFileContent(featureName);
-        if (featureContent == null) return null;
+        if (featureContent == null)
+        {
+            return (null, $"Could not find feature file for \"{featureName}\". Ensure the feature file exists in the project or referenced projects.");
+        }
 
         var dialect = GetDialect(featureContent);
         var lines = featureContent.Split('\n');
         var steps = new List<string>();
         var inTargetScenario = false;
         var foundFeature = false;
+        var featureFound = false;
         var collectingStepArgument = false;
         var inDocString = false;
 
@@ -411,6 +429,10 @@ public class ScenarioCallTestGenerator : TestGenerator
             {
                 var currentFeatureName = ExtractFeatureNameFromLine(trimmedLine, dialect.FeatureKeywords);
                 foundFeature = string.Equals(currentFeatureName, featureName, StringComparison.OrdinalIgnoreCase);
+                if (foundFeature)
+                {
+                    featureFound = true;
+                }
                 continue;
             }
 
@@ -432,8 +454,7 @@ public class ScenarioCallTestGenerator : TestGenerator
                 continue;
             }
 
-            if (inTargetScenario && (StartsWithAnyKeyword(trimmedLine, dialect.ScenarioKeywords) || 
-                                     StartsWithAnyKeyword(trimmedLine, dialect.FeatureKeywords)))
+            if (inTargetScenario && StartsWithAnyKeyword(trimmedLine, dialect.FeatureKeywords))
             {
                 break;
             }
@@ -483,7 +504,27 @@ public class ScenarioCallTestGenerator : TestGenerator
             }
         }
 
-        return steps.Any() ? steps : null;
+        if (!featureFound)
+        {
+            return (null, $"Feature \"{featureName}\" was not found in the feature file. Check feature name spelling and case.");
+        }
+
+        if (!steps.Any())
+        {
+            return (null, $"Scenario \"{scenarioName}\" was not found in feature \"{featureName}\". Check scenario name spelling and case.");
+        }
+
+        return (steps, null);
+    }
+
+    private List<string> FindScenarioSteps(string scenarioName, string featureName)
+    {
+        // Use the diagnostic method to get error messages if scenario is not found
+        var (steps, diagnosticMessage) = FindScenarioStepsWithDiagnostics(scenarioName, featureName);
+        
+        // For backward compatibility, still return null, but the diagnostic message is now available
+        // if needed in the caller
+        return steps;
     }
 
     private string ExtractFeatureNameFromLine(string line, IEnumerable<string> featureKeywords)
