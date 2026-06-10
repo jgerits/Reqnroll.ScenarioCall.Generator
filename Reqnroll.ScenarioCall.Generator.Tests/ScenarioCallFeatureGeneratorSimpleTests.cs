@@ -106,6 +106,7 @@ Scenario: Test Scenario
     [InlineData(@"When I perform an action", false)]
     [InlineData(@"I call scenario ""Test"" from feature ""Test""", false)]
     [InlineData(@"Given I call scenario Login from feature Auth", false)]
+    [InlineData(@"Given I call scenario ""Login"" from feature ""Auth"" with unexpected trailing text", false)]
     public void IsScenarioCallStep_DetectsScenarioCallSteps(string stepText, bool expected)
     {
         // Act
@@ -192,6 +193,52 @@ Scenario: Logout
         Assert.Contains("Given I am on the login page", result);
         Assert.Contains("When I enter credentials", result);
         Assert.Contains("Then I should be logged in", result);
+    }
+
+    [Fact]
+    public void FindScenarioSteps_WithScenarionaamMetadata_DoesNotTreatMetadataAsScenario()
+    {
+        // Arrange
+        SetupFeatureFileContent("Startscherm", @"Feature: Startscherm
+Scenario: Startscherm scenario
+Scenarionaam: Testen uitvoeren t.b.v. startscherm
+Testdoel: Controleren of het startscherm functioneert zoals verwacht
+    Given het startscherm is geopend
+    Then het startscherm wordt getoond");
+
+        // Act
+        var result = CallPrivateMethod<List<string>>(_generator, "FindScenarioSteps", "Startscherm scenario", "Startscherm");
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Equal(2, result.Count);
+        Assert.Contains("Given het startscherm is geopend", result);
+        Assert.Contains("Then het startscherm wordt getoond", result);
+    }
+
+    [Fact]
+    public void PreprocessFeatureContent_WithScenarionaamMetadataInCalledScenario_ExpandsScenarioCall()
+    {
+        // Arrange
+        var originalContent = @"Feature: Test Feature
+Scenario: Test Scenario
+    Given I call scenario ""Startscherm scenario"" from feature ""Startscherm""";
+
+        SetupFeatureFileContent("Startscherm", @"Feature: Startscherm
+Scenario: Startscherm scenario
+Scenarionaam: Testen uitvoeren t.b.v. startscherm
+Testdoel: Controleren of het startscherm functioneert zoals verwacht
+    Given het startscherm is geopend
+    Then het startscherm wordt getoond");
+
+        // Act
+        var result = _generator.PreprocessFeatureContent(originalContent);
+
+        // Assert
+        Assert.Contains("# Expanded from scenario call: \"Startscherm scenario\" from feature \"Startscherm\"", result);
+        Assert.Contains("Given het startscherm is geopend", result);
+        Assert.Contains("Then het startscherm wordt getoond", result);
+        Assert.DoesNotContain("Scenario \"Startscherm scenario\" was not found", result);
     }
 
     [Fact]
@@ -500,11 +547,9 @@ Scenario: LoadData
     }
 
     [Fact]
-    public void PreprocessFeatureContent_WithScenarioOutline_DoesNotExpandDueToOutlineKeyword()
+    public void PreprocessFeatureContent_WithScenarioOutline_DoesNotExpandScenarioCall()
     {
         // Arrange
-        // With the multi-language support, we now support "Scenario Outline:" as well
-        // since it's in the Gherkin dialect as a scenario keyword variant
         var originalContent = @"Feature: Test Feature
 Scenario Outline: Test with Examples
     Given I have <value>
@@ -525,11 +570,11 @@ Scenario: Process
         var result = _generator.PreprocessFeatureContent(originalContent);
 
         // Assert
-        // Now with dialect-aware parsing, "Scenario Outline:" IS recognized as a scenario variant
-        // because "Scenario Outline" starts with "Scenario" which is in the ScenarioKeywords
-        Assert.Contains("# Expanded from scenario call", result);
+        Assert.DoesNotContain("# Expanded from scenario call", result);
+        Assert.Contains(@"When I call scenario ""Process"" from feature ""Helper""", result);
         Assert.Contains("Given I have <value>", result);
         Assert.Contains("Examples:", result);
+        Assert.Contains("| value | result |", result);
     }
 
     [Fact]

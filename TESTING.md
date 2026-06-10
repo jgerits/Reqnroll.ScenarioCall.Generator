@@ -54,8 +54,8 @@ Unlike the original Reqnroll PR which included both generator and runtime compon
 
 #### Edge Cases and Limitations
 - `PreprocessFeatureContent_WithNestedScenarioCalls_PreservesInnerCalls`: Documents that nested calls are NOT recursively expanded (current limitation)
-- `PreprocessFeatureContent_WithScenarioCallInBackground_DoesNotExpand`: Documents that Background section calls are not expanded (current limitation)
-- `PreprocessFeatureContent_WithScenarioOutline_DoesNotExpandDueToOutlineKeyword`: Documents that "Scenario Outline:" is not recognized (use "Scenario:" for callable scenarios)
+- `PreprocessFeatureContent_WithScenarioCallInBackground_ExpandsCorrectly`: Tests scenario calls in Background sections
+- `PreprocessFeatureContent_WithScenarioOutline_DoesNotExpandScenarioCall`: Documents that scenario calls inside Scenario Outline sections are intentionally left unchanged
 - `PreprocessFeatureContent_WithEmptyFeatureFile_HandlesGracefully`: Tests empty file handling
 - `PreprocessFeatureContent_WithOnlyComments_HandlesCorrectly`: Tests comment-only files
 - `FindScenarioSteps_WithScenarioHavingTags_SkipsTags`: Tests proper handling of scenario tags

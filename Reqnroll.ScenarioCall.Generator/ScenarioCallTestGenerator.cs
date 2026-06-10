@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
-using System.Text.RegularExpressions;
 using System.Xml.Linq;
 using Reqnroll.Configuration;
 using Reqnroll.Generator;
@@ -49,7 +48,7 @@ public class ScenarioCallTestGenerator : TestGenerator
 
     private GherkinDialect GetDialect(string content)
     {
-        var language = DetectLanguage(content);
+        var language = ScenarioCallParsing.DetectLanguage(content);
         
         if (!_dialectCache.TryGetValue(language, out var dialect))
         {
@@ -61,70 +60,9 @@ public class ScenarioCallTestGenerator : TestGenerator
         return dialect;
     }
 
-    private static string DetectLanguage(string content)
-    {
-        // Check for # language: directive in the first few lines
-        var lines = content.Split('\n');
-        foreach (var line in lines.Take(10))
-        {
-            var trimmed = line.Trim();
-            if (trimmed.StartsWith("#") && trimmed.Contains("language:"))
-            {
-                var match = Regex.Match(trimmed, @"#\s*language:\s*([a-z]{2}(-[A-Z]{2})?)", RegexOptions.IgnoreCase);
-                if (match.Success)
-                {
-                    return match.Groups[1].Value;
-                }
-            }
-            // Stop at first non-comment, non-blank line
-            if (!string.IsNullOrWhiteSpace(trimmed) && !trimmed.StartsWith("#"))
-            {
-                break;
-            }
-        }
-        
-        return "en"; // Default to English
-    }
-
-    private static List<(string callPhrase, string fromPhrase, string withBackgroundPhrase)> GetScenarioCallPhrases(string language)
-    {
-        // Return language-specific phrases for scenario calls
-        var phrases = new List<(string, string, string)>();
-        
-        switch (language.ToLowerInvariant())
-        {
-            case "nl": // Dutch
-                phrases.Add(("ik roep scenario", "aan uit functionaliteit", "met achtergrond"));
-                phrases.Add(("ik roep scenario", "aan van functionaliteit", "met achtergrond"));
-                break;
-            case "de": // German
-                phrases.Add(("ich rufe Szenario", "auf aus Funktionalität", "mit Hintergrund"));
-                phrases.Add(("ich rufe Szenario", "auf von Funktionalität", "mit Hintergrund"));
-                break;
-            case "fr": // French
-                phrases.Add(("j'appelle le scénario", "de la fonctionnalité", "avec contexte"));
-                break;
-            case "es": // Spanish
-                phrases.Add(("llamo al escenario", "de la característica", "con antecedentes"));
-                break;
-        }
-        
-        // Always include English as fallback
-        phrases.Add(("I call scenario", "from feature", "with background"));
-        
-        return phrases;
-    }
-
     private bool StartsWithAnyKeyword(string line, IEnumerable<string> keywords)
     {
-        foreach (var keyword in keywords)
-        {
-            if (line.StartsWith(keyword))
-            {
-                return true;
-            }
-        }
-        return false;
+        return ScenarioCallParsing.StartsWithAnyKeyword(line, keywords);
     }
 
     private string PreprocessFeatureContent(string originalContent)
@@ -138,6 +76,13 @@ public class ScenarioCallTestGenerator : TestGenerator
         foreach (var line in lines)
         {
             var trimmedLine = line.Trim();
+
+            if (ScenarioCallParsing.IsScenarioOutlineLine(trimmedLine) || ScenarioCallParsing.IsExamplesLine(trimmedLine))
+            {
+                inScenario = false;
+                result.AppendLine(line);
+                continue;
+            }
                 
             if (StartsWithAnyKeyword(trimmedLine, dialect.ScenarioKeywords))
             {
@@ -177,114 +122,32 @@ public class ScenarioCallTestGenerator : TestGenerator
 
     private bool IsScenarioCallStep(string stepText, GherkinDialect dialect)
     {
-        // Build a pattern that matches any step keyword in the current dialect
-        var allStepKeywords = dialect.GivenStepKeywords
-            .Concat(dialect.WhenStepKeywords)
-            .Concat(dialect.ThenStepKeywords)
-            .Concat(dialect.AndStepKeywords)
-            .Concat(dialect.ButStepKeywords)
-            .Where(k => k != "* ")
-            .Select(k => k.Trim())
-            .Distinct();
-        
-        var keywordPattern = string.Join("|", allStepKeywords.Select(Regex.Escape));
-        
-        // Get language-specific phrases for scenario calls
-        var scenarioCallPhrases = GetScenarioCallPhrases(dialect.Language);
-        var patterns = new List<string>();
-        
-        foreach (var (callPhrase, fromPhrase, withBackgroundPhrase) in scenarioCallPhrases)
-        {
-            // Pattern without "with background"
-            var pattern = $@"({keywordPattern})\s+{Regex.Escape(callPhrase)}\s+""([^""]+)""\s+{Regex.Escape(fromPhrase)}\s+""([^""]+)""";
-            patterns.Add(pattern);
-            
-            // Pattern with "with background" (optional)
-            var patternWithBackground = $@"({keywordPattern})\s+{Regex.Escape(callPhrase)}\s+""([^""]+)""\s+{Regex.Escape(fromPhrase)}\s+""([^""]+)""\s+{Regex.Escape(withBackgroundPhrase)}";
-            patterns.Add(patternWithBackground);
-        }
-        
-        foreach (var pattern in patterns)
-        {
-            if (Regex.IsMatch(stepText, pattern, RegexOptions.IgnoreCase))
-            {
-                return true;
-            }
-        }
-        
-        return false;
+        return ScenarioCallParsing.IsScenarioCallStep(stepText, dialect);
     }
 
     private string ExpandScenarioCall(string callStepLine, string currentFeatureName, GherkinDialect dialect)
     {
-        // Build a pattern that matches any step keyword in the current dialect
-        var allStepKeywords = dialect.GivenStepKeywords
-            .Concat(dialect.WhenStepKeywords)
-            .Concat(dialect.ThenStepKeywords)
-            .Concat(dialect.AndStepKeywords)
-            .Concat(dialect.ButStepKeywords)
-            .Where(k => k != "* ")
-            .Select(k => k.Trim())
-            .Distinct();
-        
-        var keywordPattern = string.Join("|", allStepKeywords.Select(Regex.Escape));
-        
-        // Try all language-specific patterns
-        var scenarioCallPhrases = GetScenarioCallPhrases(dialect.Language);
-        string callKeyword = null;
-        string scenarioName = null;
-        string featureName = null;
-        bool includeBackground = false;
-        
-        foreach (var (callPhrase, fromPhrase, withBackgroundPhrase) in scenarioCallPhrases)
-        {
-            // Try pattern with "with background" first
-            var patternWithBackground = $@"({keywordPattern})\s+{Regex.Escape(callPhrase)}\s+""([^""]+)""\s+{Regex.Escape(fromPhrase)}\s+""([^""]+)""\s+{Regex.Escape(withBackgroundPhrase)}";
-            var matchWithBackground = Regex.Match(callStepLine, patternWithBackground, RegexOptions.IgnoreCase);
-            
-            if (matchWithBackground.Success)
-            {
-                callKeyword = matchWithBackground.Groups[1].Value;
-                scenarioName = matchWithBackground.Groups[2].Value;
-                featureName = matchWithBackground.Groups[3].Value;
-                includeBackground = true;
-                break;
-            }
-            
-            // Try pattern without "with background"
-            var pattern = $@"({keywordPattern})\s+{Regex.Escape(callPhrase)}\s+""([^""]+)""\s+{Regex.Escape(fromPhrase)}\s+""([^""]+)""";
-            var match = Regex.Match(callStepLine, pattern, RegexOptions.IgnoreCase);
-            
-            if (match.Success)
-            {
-                callKeyword = match.Groups[1].Value;
-                scenarioName = match.Groups[2].Value;
-                featureName = match.Groups[3].Value;
-                includeBackground = false;
-                break;
-            }
-        }
-        
-        if (scenarioName == null || featureName == null) return null;
+        var scenarioCall = ScenarioCallParsing.TryParseScenarioCall(callStepLine, dialect);
+        if (scenarioCall == null) return null;
         
         var leadingWhitespace = callStepLine.Substring(0, callStepLine.Length - callStepLine.TrimStart().Length);
 
         try
         {
-            var backgroundSteps = includeBackground ? FindBackgroundSteps(featureName) : null;
-            var (scenarioSteps, diagnosticMessage) = FindScenarioStepsWithDiagnostics(scenarioName, featureName);
+            var backgroundSteps = scenarioCall.IncludeBackground ? FindBackgroundSteps(scenarioCall.FeatureName) : null;
+            var (scenarioSteps, diagnosticMessage) = FindScenarioStepsWithDiagnostics(scenarioCall.ScenarioName, scenarioCall.FeatureName);
             
             // Need at least scenario steps to expand
             if (scenarioSteps != null && scenarioSteps.Any())
             {
                 var result = new StringBuilder();
-                result.AppendLine($"{leadingWhitespace}# Expanded from scenario call: \"{scenarioName}\" from feature \"{featureName}\"");
-                result.AppendLine(FormatScenarioCallMarkerStep(leadingWhitespace, callKeyword, scenarioName, featureName, includeBackground));
+                result.AppendLine($"{leadingWhitespace}# Expanded from scenario call: \"{scenarioCall.ScenarioName}\" from feature \"{scenarioCall.FeatureName}\"");
+                result.AppendLine(FormatScenarioCallMarkerStep(leadingWhitespace, scenarioCall.CallKeyword, scenarioCall.ScenarioName, scenarioCall.FeatureName, scenarioCall.IncludeBackground));
                 
                 // Include Background steps only if requested
-                if (includeBackground && backgroundSteps != null && backgroundSteps.Any())
+                if (scenarioCall.IncludeBackground && backgroundSteps != null && backgroundSteps.Any())
                 {
-                    result.AppendLine($"{leadingWhitespace}# Including Background steps from feature \"{featureName}\"");
+                    result.AppendLine($"{leadingWhitespace}# Including Background steps from feature \"{scenarioCall.FeatureName}\"");
                     foreach (var step in backgroundSteps)
                     {
                         result.AppendLine($"{leadingWhitespace}{step}");
@@ -328,12 +191,7 @@ public class ScenarioCallTestGenerator : TestGenerator
 
     private static string GetDiagnosticStepKeyword(GherkinDialect dialect)
     {
-        var keyword = dialect.GivenStepKeywords
-            .Where(k => k != "* ")
-            .Select(k => k.Trim())
-            .FirstOrDefault(k => !string.IsNullOrEmpty(k));
-
-        return $"{keyword ?? "Given"} ";
+        return ScenarioCallParsing.GetDiagnosticStepKeyword(dialect);
     }
 
     private List<string> FindBackgroundSteps(string featureName)
@@ -559,35 +417,17 @@ public class ScenarioCallTestGenerator : TestGenerator
 
     private string ExtractFeatureNameFromLine(string line, IEnumerable<string> featureKeywords)
     {
-        foreach (var keyword in featureKeywords)
-        {
-            if (line.StartsWith(keyword))
-            {
-                return line.Substring(keyword.Length).Trim().TrimStart(':').Trim();
-            }
-        }
-        return null;
+        return ScenarioCallParsing.ExtractFeatureNameFromLine(line, featureKeywords);
     }
 
     private string ExtractScenarioNameFromLine(string line, IEnumerable<string> scenarioKeywords)
     {
-        foreach (var keyword in scenarioKeywords)
-        {
-            if (line.StartsWith(keyword))
-            {
-                return line.Substring(keyword.Length).Trim().TrimStart(':').Trim();
-            }
-        }
-        return null;
+        return ScenarioCallParsing.ExtractScenarioNameFromLine(line, scenarioKeywords);
     }
 
     private bool IsStepLine(string line, GherkinDialect dialect)
     {
-        return StartsWithAnyKeyword(line, dialect.GivenStepKeywords) ||
-               StartsWithAnyKeyword(line, dialect.WhenStepKeywords) ||
-               StartsWithAnyKeyword(line, dialect.ThenStepKeywords) ||
-               StartsWithAnyKeyword(line, dialect.AndStepKeywords) ||
-               StartsWithAnyKeyword(line, dialect.ButStepKeywords);
+        return ScenarioCallParsing.IsStepLine(line, dialect);
     }
 
     private string FindFeatureFileContent(string featureName)

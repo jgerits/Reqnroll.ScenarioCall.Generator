@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.5.2] - 2026-06-10
+
+### Fixed
+- **Metadata lines no longer break scenario lookup**: Gherkin keyword matching now requires a real header separator, so lines such as `Scenarionaam:` are not mistaken for `Scenario:` headers.
+- **Consistent parser behavior across generator paths**: Shared language detection, keyword matching, scenario-call parsing, and name extraction between `ScenarioCallFeatureGenerator` and `ScenarioCallTestGenerator`.
+- **Scenario Outline handling is explicit**: Scenario calls inside `Scenario Outline` sections are intentionally left unchanged, preserving `Examples` behavior.
+
 ## [3.5.1] - 2026-06-10
 
 ### Added
@@ -167,7 +174,8 @@ This ensures compatibility with the corresponding Reqnroll version while allowin
 
 ## Links
 
-- [Unreleased]: https://github.com/jgerits/Reqnroll.ScenarioCall.Generator/compare/v3.5.1...HEAD
+- [Unreleased]: https://github.com/jgerits/Reqnroll.ScenarioCall.Generator/compare/v3.5.2...HEAD
+- [3.5.2]: https://github.com/jgerits/Reqnroll.ScenarioCall.Generator/compare/v3.5.1...v3.5.2
 - [3.5.1]: https://github.com/jgerits/Reqnroll.ScenarioCall.Generator/compare/v3.5.0...v3.5.1
 - [3.5.0]: https://github.com/jgerits/Reqnroll.ScenarioCall.Generator/compare/v3.4.0...v3.5.0
 - [3.4.0]: https://github.com/jgerits/Reqnroll.ScenarioCall.Generator/compare/v3.3.4...v3.4.0
