@@ -71,6 +71,7 @@ Scenario: Login
 
         // Assert
         Assert.Contains("# Expanded from scenario call", result);
+        Assert.Contains("Given scenario call: \"Login\" from feature \"Authentication\"", result);
         Assert.Contains("Given I am on the login page", result);
         Assert.Contains("When I enter credentials", result);
         Assert.Contains("Then I should be logged in", result);
@@ -90,6 +91,7 @@ Scenario: Test Scenario
         // Assert
         Assert.Contains("# ERROR:", result);
         Assert.Contains("Could not find feature file", result);
+        Assert.Contains("Given scenario call expansion failed: Could not find feature file", result);
         // Verify the original call line is NOT in the result (it was removed)
         Assert.DoesNotContain("Given I call scenario \"NonExistent\" from feature \"NonExistent\"", result);
     }
@@ -131,6 +133,7 @@ Scenario: Login
         // Assert
         Assert.NotNull(result);
         Assert.Contains("# Expanded from scenario call", result);
+        Assert.Contains("Given scenario call: \"Login\" from feature \"Authentication\"", result);
         Assert.Contains("Given I am on the login page", result);
         Assert.Contains("When I enter credentials", result);
         Assert.Contains("Then I should be logged in", result);
@@ -162,6 +165,7 @@ Scenario: Login
         Assert.NotNull(result);
         Assert.Contains("# ERROR:", result);
         Assert.Contains("Could not find feature file", result);
+        Assert.Contains("Given scenario call expansion failed: Could not find feature file", result);
     }
 
     [Fact]
@@ -310,6 +314,7 @@ Scenario: Login
 
         // Assert
         Assert.Contains("# Expanded from scenario call:", result);
+        Assert.Contains("Given scenario call: \"Login\" from feature \"Authentication\"", result);
         Assert.Contains("Given I am on the login page", result);
     }
 
@@ -444,6 +449,7 @@ Scenario: Setup
         // Assert
         // Background scenario calls should be expanded
         Assert.Contains("# Expanded from scenario call: \"Setup\" from feature \"Common\"", result);
+        Assert.Contains("Given scenario call: \"Setup\" from feature \"Common\"", result);
         Assert.Contains("Given the system is initialized", result);
         Assert.Contains("And the database is ready", result);
         // The original call line should be removed
@@ -481,6 +487,8 @@ Scenario: LoadData
         // Verify that both scenario calls are expanded and regular steps are preserved
         Assert.Contains("# Expanded from scenario call: \"Login\" from feature \"Auth\"", result);
         Assert.Contains("# Expanded from scenario call: \"LoadData\" from feature \"Data\"", result);
+        Assert.Contains("Given scenario call: \"Login\" from feature \"Auth\"", result);
+        Assert.Contains("When scenario call: \"LoadData\" from feature \"Data\"", result);
         Assert.Contains("And I navigate to dashboard", result);
         Assert.Contains("Then I should see results", result);
         
@@ -1048,6 +1056,7 @@ Scenario: Test Scenario
         Assert.Contains("# ERROR:", result);
         Assert.Contains("Could not find feature file for \"NonExistentFeature\"", result);
         Assert.Contains("Ensure the feature file exists", result);
+        Assert.Contains("Given scenario call expansion failed: Could not find feature file for \"NonExistentFeature\"", result);
         // Verify the original call line is NOT in the result
         Assert.DoesNotContain("Given I call scenario \"SomeScenario\" from feature \"NonExistentFeature\"", result);
     }
@@ -1073,6 +1082,7 @@ Scenario: Login
         Assert.Contains("Scenario \"NonExistentScenario\" was not found", result);
         Assert.Contains("feature \"Authentication\"", result);
         Assert.Contains("Check scenario name spelling and case", result);
+        Assert.Contains("Given scenario call expansion failed: Scenario \"NonExistentScenario\" was not found", result);
         // Verify the original call line is NOT in the result
         Assert.DoesNotContain("Given I call scenario \"NonExistentScenario\" from feature \"Authentication\"", result);
     }
@@ -1096,6 +1106,7 @@ Scenario: Login
         // Assert
         Assert.Contains("# ERROR:", result);
         Assert.Contains("Could not find feature file for \"WrongName\"", result);
+        Assert.Contains("Given scenario call expansion failed: Could not find feature file for \"WrongName\"", result);
         // Verify the original call line is NOT in the result
         Assert.DoesNotContain("Given I call scenario \"Login\" from feature \"WrongName\"", result);
     }
@@ -1137,6 +1148,7 @@ Scenario: Test Scenario
         Assert.Contains("Given I have some setup", result);
         Assert.Contains("Then I should see results", result);
         Assert.Contains("# ERROR:", result);
+        Assert.Contains("Given scenario call expansion failed: Could not find feature file for \"Missing\"", result);
         // Verify the failed call line is NOT in the result
         Assert.DoesNotContain("When I call scenario \"Missing\" from feature \"Missing\"", result);
     }

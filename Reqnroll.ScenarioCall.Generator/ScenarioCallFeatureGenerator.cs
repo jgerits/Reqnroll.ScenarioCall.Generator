@@ -15,6 +15,8 @@ namespace Reqnroll.ScenarioCall.Generator;
 public class ScenarioCallFeatureGenerator : IFeatureGenerator
 {
     private const string CircularReferenceErrorFormat = "# Error: Circular reference detected - scenario \"{0}\" from feature \"{1}\" is already in the call chain";
+    private const string ScenarioCallMarkerPrefix = "scenario call:";
+    private const string ScenarioCallExpansionFailedPrefix = "scenario call expansion failed:";
     
     private readonly IFeatureGenerator _baseGenerator;
     private readonly Dictionary<string, string> _featureFileCache = new();
@@ -309,6 +311,7 @@ public class ScenarioCallFeatureGenerator : IFeatureGenerator
         
         // Try all language-specific patterns
         var scenarioCallPhrases = GetScenarioCallPhrases(dialect.Language);
+        string callKeyword = null;
         string scenarioName = null;
         string featureName = null;
         bool includeBackground = false;
@@ -321,6 +324,7 @@ public class ScenarioCallFeatureGenerator : IFeatureGenerator
             
             if (matchWithBackground.Success)
             {
+                callKeyword = matchWithBackground.Groups[1].Value;
                 scenarioName = matchWithBackground.Groups[2].Value;
                 featureName = matchWithBackground.Groups[3].Value;
                 includeBackground = true;
@@ -333,6 +337,7 @@ public class ScenarioCallFeatureGenerator : IFeatureGenerator
             
             if (match.Success)
             {
+                callKeyword = match.Groups[1].Value;
                 scenarioName = match.Groups[2].Value;
                 featureName = match.Groups[3].Value;
                 includeBackground = false;
@@ -389,6 +394,7 @@ public class ScenarioCallFeatureGenerator : IFeatureGenerator
                 }
                 
                 result.AppendLine($"{leadingWhitespace}# Expanded from scenario call: \"{scenarioName}\" from feature \"{featureName}\"");
+                result.AppendLine(FormatScenarioCallMarkerStep(leadingWhitespace, callKeyword, scenarioName, featureName, includeBackground));
                 
                 // Include Background steps only if requested
                 if (includeBackground && backgroundSteps != null && backgroundSteps.Any())
@@ -412,20 +418,51 @@ public class ScenarioCallFeatureGenerator : IFeatureGenerator
             {
                 // If scenario steps couldn't be found but there's a language validation warning,
                 // it's likely due to the language mismatch. Return the warning.
-                return $"{leadingWhitespace}# WARNING: {languageValidationWarning}\n{leadingWhitespace}# Warning: Could not expand scenario call (likely due to language directive issue)\n";
+                return $"{leadingWhitespace}# WARNING: {languageValidationWarning}\n" +
+                       $"{leadingWhitespace}# Warning: Could not expand scenario call (likely due to language directive issue)\n" +
+                       FormatDiagnosticScenarioCallFailure(leadingWhitespace, dialect, $"Could not expand scenario call (likely due to language directive issue). {languageValidationWarning}", includeComment: false);
             }
             else if (!string.IsNullOrEmpty(diagnosticMessage))
             {
-                // Return diagnostic message instead of null to provide clear feedback
-                return $"{leadingWhitespace}# ERROR: {diagnosticMessage}\n";
+                return FormatDiagnosticScenarioCallFailure(leadingWhitespace, dialect, diagnosticMessage);
             }
         }
         catch (Exception ex)
         {
-            return $"{leadingWhitespace}# ERROR: Exception during scenario call expansion - {ex.Message}\n";
+            return FormatDiagnosticScenarioCallFailure(leadingWhitespace, dialect, $"Exception during scenario call expansion - {ex.Message}");
         }
 
         return null;
+    }
+
+    private static string FormatScenarioCallMarkerStep(string leadingWhitespace, string callKeyword, string scenarioName, string featureName, bool includeBackground)
+    {
+        var suffix = includeBackground ? " with background" : string.Empty;
+        return $"{leadingWhitespace}{callKeyword} {ScenarioCallMarkerPrefix} \"{scenarioName}\" from feature \"{featureName}\"{suffix}";
+    }
+
+    private static string FormatDiagnosticScenarioCallFailure(string leadingWhitespace, GherkinDialect dialect, string message, bool includeComment = true)
+    {
+        var stepKeyword = GetDiagnosticStepKeyword(dialect);
+
+        var result = new StringBuilder();
+        if (includeComment)
+        {
+            result.AppendLine($"{leadingWhitespace}# ERROR: {message}");
+        }
+
+        result.AppendLine($"{leadingWhitespace}{stepKeyword}{ScenarioCallExpansionFailedPrefix} {message}");
+        return result.ToString();
+    }
+
+    private static string GetDiagnosticStepKeyword(GherkinDialect dialect)
+    {
+        var keyword = dialect.GivenStepKeywords
+            .Where(k => k != "* ")
+            .Select(k => k.Trim())
+            .FirstOrDefault(k => !string.IsNullOrEmpty(k));
+
+        return $"{keyword ?? "Given"} ";
     }
 
     private List<string> FindBackgroundSteps(string featureName, string currentFeatureName, string currentFeatureContent)

@@ -15,7 +15,8 @@ A powerful Reqnroll generator plugin that enables calling and embedding scenario
 - 📄 **Same-Feature Calls**: Call scenarios within the same feature file ✨ NEW!
 - 🚀 **Cross-Project Support**: Automatically discovers and calls scenarios from referenced projects
 - 🏗️ **Build-Time Processing**: No runtime overhead - scenarios are expanded at build time
-- 🛡️ **Error Handling**: Graceful handling of missing scenarios with clear warnings
+- 🛡️ **Error Handling**: Missing scenarios and features fail with clear diagnostics
+- 🧭 **Generated Call Markers**: Generated tests show when another scenario is being called
 - 🔒 **Recursion Detection**: Automatically prevents circular scenario references ✨ NEW!
 - 📁 **Automatic Discovery**: Automatically finds feature files in referenced projects - no manual copying needed
 - 🌍 **Multi-Language Support**: Supports all Gherkin languages (English, German, French, Spanish, Dutch, and more)
@@ -86,6 +87,7 @@ The scenario call is automatically expanded during build time:
 ```gherkin
 Scenario: Create New User Account
     # Expanded from scenario call: "Login" from feature "Authentication"
+    Given scenario call: "Login" from feature "Authentication"
     Given I am on the login page
     When I enter valid credentials
     Then I should be logged in successfully
@@ -93,10 +95,13 @@ Scenario: Create New User Account
     And I create a new user account
     Then the user should be created successfully
     # Expanded from scenario call: "Logout" from feature "Authentication"
+    And scenario call: "Logout" from feature "Authentication"
     Given I am logged in
     When I click the logout button
     Then I should be logged out
 ```
+
+The generated `scenario call:` step is a no-op marker that is bound by the package. It keeps scenario-call boundaries visible in `*.feature.cs` files and test runner output without requiring you to add a step definition.
 
 ### Background Support Example
 
@@ -129,6 +134,7 @@ Scenario: Create User with Background
 ```gherkin
 Scenario: Create User with Background
     # Expanded from scenario call: "Login" from feature "Authentication"
+    Given scenario call: "Login" from feature "Authentication" with background
     # Including Background steps from feature "Authentication"
     Given the authentication system is initialized
     And the user database is ready
@@ -265,13 +271,14 @@ Scenario: Place Order as Authenticated User
 **Example:** See [examples/MSTestCrossProjectExample](examples/MSTestCrossProjectExample/) for a complete working example.
 
 ### Error Handling
-When a scenario call cannot be resolved, the plugin provides detailed diagnostic messages to help you identify and fix the issue. The original undefined scenario call line is removed from the generated output to prevent "undefined step" errors.
+When a scenario call cannot be resolved, the plugin provides detailed diagnostic messages to help you identify and fix the issue. The original undefined scenario call line is removed from the generated output and replaced with an executable diagnostic step so the generated scenario fails instead of being skipped.
 
 **Example 1: Feature not found**
 ```gherkin
 Scenario: Test with Missing Feature
     Given I call scenario "SomeScenario" from feature "NonExistent"
     # ERROR: Could not find feature file for "NonExistent". Ensure the feature file exists in the project or referenced projects.
+    Given scenario call expansion failed: Could not find feature file for "NonExistent". Ensure the feature file exists in the project or referenced projects.
 ```
 
 **Example 2: Scenario not found**
@@ -279,16 +286,10 @@ Scenario: Test with Missing Feature
 Scenario: Test with Missing Scenario
     Given I call scenario "NonExistent" from feature "Authentication"
     # ERROR: Scenario "NonExistent" was not found in feature "Authentication". Check scenario name spelling and case.
+    Given scenario call expansion failed: Scenario "NonExistent" was not found in feature "Authentication". Check scenario name spelling and case.
 ```
 
-**Example 3: Scenario call in Background (not supported)**
-```gherkin
-Background:
-    Given I call scenario "Setup" from feature "Common"
-    # ERROR: Scenario calls in Background sections are not supported. Move this call to a Scenario block.
-```
-
-The plugin removes the original scenario call line and replaces it with a descriptive error comment, preventing the line from appearing as an "undefined step" (highlighted in purple) in your IDE.
+The plugin removes the original scenario call line and replaces it with a descriptive error comment plus a bound diagnostic step. This prevents the original line from appearing as an "undefined step" in your IDE while still failing the generated test.
 
 ### Nested Scenario Calls
 Scenarios can contain calls to other scenarios, enabling complex composition:

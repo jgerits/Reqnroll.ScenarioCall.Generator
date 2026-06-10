@@ -28,4 +28,12 @@
     <ReqnrollGeneratorPlugins Include="$(MSBuildProjectDirectory)\..\Reqnroll.ScenarioCall.Generator\bin\$(Configuration)\netstandard2.0\Reqnroll.ScenarioCall.Generator.dll" />
   </ItemGroup>
 
+  <Target Name="CopyScenarioCallRuntimePlugin" AfterTargets="CopyFilesToOutputDirectory">
+    <Copy
+      SourceFiles="$(TargetDir)Reqnroll.ScenarioCall.Generator.dll"
+      DestinationFiles="$(TargetDir)Reqnroll.ScenarioCall.Generator.ReqnrollPlugin.dll"
+      SkipUnchangedFiles="true"
+      Condition="Exists('$(TargetDir)Reqnroll.ScenarioCall.Generator.dll')" />
+  </Target>
+
 </Project>

@@ -1,8 +1,10 @@
 ﻿using Reqnroll.Generator.Plugins;
 using Reqnroll.Infrastructure;
+using Reqnroll.Plugins;
 using Reqnroll.UnitTestProvider;
 
 [assembly: GeneratorPlugin(typeof(Reqnroll.ScenarioCall.Generator.GeneratorPlugin))]
+[assembly: RuntimePlugin(typeof(Reqnroll.ScenarioCall.Generator.ScenarioCallRuntimePlugin))]
 
 namespace Reqnroll.ScenarioCall.Generator;
 

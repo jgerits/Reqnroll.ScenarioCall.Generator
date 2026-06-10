@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.5.1] - 2026-06-10
+
+### Added
+- **Generated scenario-call markers**: Expanded scenarios now include a bound no-op marker step such as `Given scenario call: "Login" from feature "Authentication"` before the referenced scenario steps. This makes scenario-call boundaries visible in generated `*.feature.cs` files and test runner output.
+
+### Fixed
+- **Missing feature/scenario failures no longer skip**: Failed scenario-call expansion now emits an executable diagnostic step after the `# ERROR` comment, so missing features or scenarios fail the generated test instead of producing comment-only scenarios that can be skipped.
+
 ## [3.5.0] - 2026-06-10
 
 ### Added
@@ -159,7 +167,9 @@ This ensures compatibility with the corresponding Reqnroll version while allowin
 
 ## Links
 
-- [Unreleased]: https://github.com/jgerits/Reqnroll.ScenarioCall.Generator/compare/v3.4.0...HEAD
+- [Unreleased]: https://github.com/jgerits/Reqnroll.ScenarioCall.Generator/compare/v3.5.1...HEAD
+- [3.5.1]: https://github.com/jgerits/Reqnroll.ScenarioCall.Generator/compare/v3.5.0...v3.5.1
+- [3.5.0]: https://github.com/jgerits/Reqnroll.ScenarioCall.Generator/compare/v3.4.0...v3.5.0
 - [3.4.0]: https://github.com/jgerits/Reqnroll.ScenarioCall.Generator/compare/v3.3.4...v3.4.0
 - [3.3.2]: https://github.com/jgerits/Reqnroll.ScenarioCall.Generator/releases/tag/v3.3.2
 - [3.3.0]: https://github.com/jgerits/Reqnroll.ScenarioCall.Generator/releases/tag/v3.3.0

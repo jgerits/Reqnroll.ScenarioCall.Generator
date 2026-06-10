@@ -1,6 +1,7 @@
 using Moq;
 using Reqnroll.Generator.Plugins;
 using Reqnroll.Infrastructure;
+using Reqnroll.Plugins;
 using Reqnroll.ScenarioCall.Generator;
 using Reqnroll.UnitTestProvider;
 using Xunit;
@@ -47,5 +48,18 @@ public class GeneratorPluginTests
         Assert.Single(attributes);
         var attribute = (GeneratorPluginAttribute)attributes[0];
         Assert.Equal(typeof(GeneratorPlugin), attribute.PluginType);
+    }
+
+    [Fact]
+    public void RuntimePlugin_HasCorrectAssemblyAttribute()
+    {
+        // Arrange & Act
+        var assembly = typeof(ScenarioCallRuntimePlugin).Assembly;
+        var attributes = assembly.GetCustomAttributes(typeof(RuntimePluginAttribute), false);
+
+        // Assert
+        Assert.Single(attributes);
+        var attribute = (RuntimePluginAttribute)attributes[0];
+        Assert.Equal(typeof(ScenarioCallRuntimePlugin), attribute.PluginType);
     }
 }

@@ -18,6 +18,9 @@ namespace Reqnroll.ScenarioCall.Generator;
 
 public class ScenarioCallTestGenerator : TestGenerator
 {
+    private const string ScenarioCallMarkerPrefix = "scenario call:";
+    private const string ScenarioCallExpansionFailedPrefix = "scenario call expansion failed:";
+
     private readonly Dictionary<string, string> _featureFileCache = new();
     private readonly Dictionary<string, GherkinDialect> _dialectCache = new();
     private readonly ProjectSettings _projectSettings;
@@ -228,6 +231,7 @@ public class ScenarioCallTestGenerator : TestGenerator
         
         // Try all language-specific patterns
         var scenarioCallPhrases = GetScenarioCallPhrases(dialect.Language);
+        string callKeyword = null;
         string scenarioName = null;
         string featureName = null;
         bool includeBackground = false;
@@ -240,6 +244,7 @@ public class ScenarioCallTestGenerator : TestGenerator
             
             if (matchWithBackground.Success)
             {
+                callKeyword = matchWithBackground.Groups[1].Value;
                 scenarioName = matchWithBackground.Groups[2].Value;
                 featureName = matchWithBackground.Groups[3].Value;
                 includeBackground = true;
@@ -252,6 +257,7 @@ public class ScenarioCallTestGenerator : TestGenerator
             
             if (match.Success)
             {
+                callKeyword = match.Groups[1].Value;
                 scenarioName = match.Groups[2].Value;
                 featureName = match.Groups[3].Value;
                 includeBackground = false;
@@ -273,6 +279,7 @@ public class ScenarioCallTestGenerator : TestGenerator
             {
                 var result = new StringBuilder();
                 result.AppendLine($"{leadingWhitespace}# Expanded from scenario call: \"{scenarioName}\" from feature \"{featureName}\"");
+                result.AppendLine(FormatScenarioCallMarkerStep(leadingWhitespace, callKeyword, scenarioName, featureName, includeBackground));
                 
                 // Include Background steps only if requested
                 if (includeBackground && backgroundSteps != null && backgroundSteps.Any())
@@ -294,16 +301,39 @@ public class ScenarioCallTestGenerator : TestGenerator
             }
             else if (!string.IsNullOrEmpty(diagnosticMessage))
             {
-                // Return diagnostic message instead of null to provide clear feedback
-                return $"{leadingWhitespace}# ERROR: {diagnosticMessage}\n";
+                return FormatDiagnosticScenarioCallFailure(leadingWhitespace, dialect, diagnosticMessage);
             }
         }
         catch (Exception ex)
         {
-            return $"{leadingWhitespace}# ERROR: Exception during scenario call expansion - {ex.Message}\n";
+            return FormatDiagnosticScenarioCallFailure(leadingWhitespace, dialect, $"Exception during scenario call expansion - {ex.Message}");
         }
 
         return null;
+    }
+
+    private static string FormatScenarioCallMarkerStep(string leadingWhitespace, string callKeyword, string scenarioName, string featureName, bool includeBackground)
+    {
+        var suffix = includeBackground ? " with background" : string.Empty;
+        return $"{leadingWhitespace}{callKeyword} {ScenarioCallMarkerPrefix} \"{scenarioName}\" from feature \"{featureName}\"{suffix}";
+    }
+
+    private static string FormatDiagnosticScenarioCallFailure(string leadingWhitespace, GherkinDialect dialect, string message)
+    {
+        var stepKeyword = GetDiagnosticStepKeyword(dialect);
+
+        return $"{leadingWhitespace}# ERROR: {message}\n" +
+               $"{leadingWhitespace}{stepKeyword}{ScenarioCallExpansionFailedPrefix} {message}\n";
+    }
+
+    private static string GetDiagnosticStepKeyword(GherkinDialect dialect)
+    {
+        var keyword = dialect.GivenStepKeywords
+            .Where(k => k != "* ")
+            .Select(k => k.Trim())
+            .FirstOrDefault(k => !string.IsNullOrEmpty(k));
+
+        return $"{keyword ?? "Given"} ";
     }
 
     private List<string> FindBackgroundSteps(string featureName)

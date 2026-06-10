@@ -5,9 +5,9 @@
         <LangVersion>latest</LangVersion>
         
         <!-- Version Information -->
-        <Version>3.5.0</Version>
-        <AssemblyVersion>3.5.0</AssemblyVersion>
-        <FileVersion>3.5.0</FileVersion>
+        <Version>3.5.1</Version>
+        <AssemblyVersion>3.5.1</AssemblyVersion>
+        <FileVersion>3.5.1</FileVersion>
         
         <!-- Package Metadata -->
         <PackageId>JGerits.Reqnroll.ScenarioCall.Generator</PackageId>
@@ -21,7 +21,7 @@
         <RepositoryType>git</RepositoryType>
         <PackageReadmeFile>README.md</PackageReadmeFile>
         <PackageTags>reqnroll;specflow;bdd;gherkin;testing;scenario;generator;plugin</PackageTags>
-        <PackageReleaseNotes>v3.5.0: Improved error messages for missing scenarios and features. When calling non-existent scenarios, the generator now provides clear, actionable error messages instead of relying on default "step not defined" errors. Enhanced with diagnostic error handling methods for better feedback during development.</PackageReleaseNotes>
+        <PackageReleaseNotes>v3.5.1: Added generated scenario-call marker steps so feature.cs files and test output show when another scenario is being called. Failed scenario-call diagnostics now emit executable failure steps so missing features or scenarios fail instead of producing skipped/comment-only scenarios.</PackageReleaseNotes>
         
         <!-- Build Configuration -->
         <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
